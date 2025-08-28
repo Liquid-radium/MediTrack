@@ -8,9 +8,9 @@ app = Flask(__name__)
 # Cloud DB connection
 def get_conn():
     return mysql.connector.connect(
-        host="your-db-host.amazonaws.com",
+        host="https://ojllmtwkbetokuwhhbvz.supabase.co",
         user="dbuser",
-        password="dbpassword",
+        password="#miniproj25",
         database="hospital_db"
     )
 
