@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SmartBand Patient Monitor</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body style="font-family: Arial; text-align: center;">
+  <h2>Scan Patient QR</h2>
+  <div id="reader" style="width:300px; margin:auto;"></div>
+  <div id="result" style="margin-top:20px;"></div>
+
+  <script>
+    function onScanSuccess(decodedText, decodedResult) {
+      // Example QR = "https://software-part.onrender.com/patient/123"
+      fetch(decodedText)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById("result").innerHTML = `<p>${data.error}</p>`;
+          } else {
+            document.getElementById("result").innerHTML =
+              `<h3>${data.name} (Age: ${data.age}, Ward: ${data.ward})</h3>`;
+          }
+        });
+
+      // Fetch vitals as well
+      fetch(decodedText + "/vitals")
+        .then(res => res.json())
+        .then(vitals => {
+          if (!vitals.error) {
+            document.getElementById("result").innerHTML +=
+              `<p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
+               <p><b>SpO₂:</b> ${vitals.spo2}%</p>`;
+          }
+        });
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
