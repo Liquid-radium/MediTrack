@@ -2,16 +2,25 @@
 <html>
 <head>
   <title>SmartBand Patient Monitor</title>
+  <!-- QR scanner library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    #reader { margin: auto; width: 300px; }
+    #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; display: inline-block; }
+  </style>
 </head>
-<body style="font-family: Arial; text-align: center;">
+<body>
   <h2>Scan Patient QR</h2>
-  <div id="reader" style="width:300px; margin:auto;"></div>
-  <div id="result" style="margin-top:20px;"></div>
+  <div id="reader"></div>
+  <div id="result"></div>
 
   <script>
     function onScanSuccess(decodedText, decodedResult) {
-      // Example QR = "https://software-part.onrender.com/patient/123"
+      // Example QR contains: https://software-part.onrender.com/patient/5
+      document.getElementById("result").innerHTML = `<p>Scanning...</p>`;
+
+      // Fetch patient info
       fetch(decodedText)
         .then(res => res.json())
         .then(data => {
@@ -23,7 +32,7 @@
           }
         });
 
-      // Fetch vitals as well
+      // Fetch vitals
       fetch(decodedText + "/vitals")
         .then(res => res.json())
         .then(vitals => {
@@ -35,6 +44,7 @@
         });
     }
 
+    // Start QR scanner
     let html5QrcodeScanner = new Html5QrcodeScanner(
       "reader", { fps: 10, qrbox: 250 });
     html5QrcodeScanner.render(onScanSuccess);
