@@ -1,85 +1,63 @@
 from flask import Flask, jsonify, request
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from supabase import create_client
 
 app = Flask(__name__)
 
-# --- Database connection helper ---
-def get_conn():
-    return psycopg2.connect(
-        host=os.environ.get("DB_HOST"),
-        user=os.environ.get("DB_USER"),
-        password=os.environ.get("DB_PASS"),
-        dbname=os.environ.get("DB_NAME"),
-        port=5432
-    )
+# --- Supabase client ---
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase = create_client(url, key)
 
-# --- Routes ---
 @app.route("/")
 def home():
     return jsonify({"message": "SmartBand API running 🚀"})
 
-# 1. Fetch patient details
+
+# 1. Fetch patient details after QR scan
 @app.route("/patient/<pid>", methods=["GET"])
 def get_patient(pid):
-    try:
-        conn = get_conn()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM patient WHERE patient_id = %s", (pid,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        if row:
-            return jsonify(row)
-        return jsonify({"error": "Patient not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    response = supabase.table("patient").select("*").eq("patient_id", pid).execute()
+    if response.data:
+        return jsonify(response.data[0])
+    return jsonify({"error": "Patient not found"}), 404
 
-# 2. Fetch latest vitals
+
+# 2. Fetch latest vitals for patient
 @app.route("/patient/<pid>/vitals", methods=["GET"])
 def get_vitals(pid):
-    try:
-        conn = get_conn()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT * FROM vitals
-            WHERE patient_id = %s
-            ORDER BY timestamp DESC LIMIT 1
-        """, (pid,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        if row:
-            return jsonify(row)
-        return jsonify({"error": "No vitals found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    response = (
+        supabase.table("vitals")
+        .select("*")
+        .eq("patient_id", pid)
+        .order("timestamp", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if response.data:
+        return jsonify(response.data[0])
+    return jsonify({"error": "No vitals found"}), 404
 
-# 3. Add new vitals
+
+# 3. Add new vitals (from smart band sensor gateway)
 @app.route("/add_vitals", methods=["POST"])
 def add_vitals():
-    try:
-        data = request.json
-        pid = data.get("patient_id")
-        heart_rate = data.get("heart_rate")
-        spo2 = data.get("spo2")
+    data = request.json
+    pid = data.get("patient_id")
+    heart_rate = data.get("heart_rate")
+    spo2 = data.get("spo2")
 
-        if not pid:
-            return jsonify({"error": "Missing patient_id"}), 400
+    if not pid:
+        return jsonify({"error": "Missing patient_id"}), 400
 
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO vitals (patient_id, heart_rate, spo2, timestamp) VALUES (%s, %s, %s, NOW())",
-            (pid, heart_rate, spo2)
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
+    response = supabase.table("vitals").insert(
+        {"patient_id": pid, "heart_rate": heart_rate, "spo2": spo2}
+    ).execute()
+
+    if response.data:
         return jsonify({"message": "Vitals added successfully"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"error": "Insert failed"}), 500
+
 
 # --- Run locally ---
 if __name__ == "__main__":
