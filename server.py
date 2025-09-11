@@ -1,5 +1,7 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_file
 import os
+import io
+import qrcode
 from supabase import create_client
 
 app = Flask(__name__)
@@ -11,13 +13,31 @@ supabase = create_client(url, key)
 
 # --- Routes ---
 
-# Serve the frontend UI
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# 1. Fetch patient details after QR scan
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    qr_image = None
+    if request.method == "POST":
+        patient_id = request.form.get("patient_id")
+        if patient_id:
+            # Generate QR code for the patient
+            base_url = request.host_url + "patient/"
+            full_url = f"{base_url}{patient_id}"
+            img = qrcode.make(full_url)
+
+            # Convert image to bytes to send without saving
+            img_io = io.BytesIO()
+            img.save(img_io, "PNG")
+            img_io.seek(0)
+            return send_file(img_io, mimetype="image/png", as_attachment=True,
+                             download_name=f"patient_{patient_id}.png")
+    return render_template("admin.html")
+
+
 @app.route("/patient/<pid>", methods=["GET"])
 def get_patient(pid):
     response = supabase.table("patient").select("*").eq("patient_id", pid).execute()
@@ -26,7 +46,6 @@ def get_patient(pid):
     return jsonify({"error": "Patient not found"}), 404
 
 
-# 2. Fetch latest vitals for patient
 @app.route("/patient/<pid>/vitals", methods=["GET"])
 def get_vitals(pid):
     response = (
@@ -42,7 +61,6 @@ def get_vitals(pid):
     return jsonify({"error": "No vitals found"}), 404
 
 
-# 3. Add new vitals (from smart band sensor gateway)
 @app.route("/add_vitals", methods=["POST"])
 def add_vitals():
     data = request.json
