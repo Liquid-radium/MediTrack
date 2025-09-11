@@ -716,7 +716,14 @@
     function showSection(id) {
       // Update nav buttons
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      
+      // Find and activate the clicked button
+      const clickedBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => 
+        btn.getAttribute('onclick').includes(id)
+      );
+      if (clickedBtn) {
+        clickedBtn.classList.add('active');
+      }
       
       // Update sections
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
@@ -912,11 +919,11 @@
               </tr>
             `;
           } else {
-            data.forEach(patient => { 
+            data.forEach(patient => {
               const row = document.createElement("tr");
               row.innerHTML = `
                 <td>${patient.patient_id || 'N/A'}</td>
-                <td>${patient.name}</td>
+                <td>${patient.name}</td>  
                 <td>${patient.age}</td>
                 <td>${patient.ward}</td>
               `;
@@ -927,12 +934,12 @@
         .catch(err => {
           tbody.innerHTML = `
             <tr>
-              <td colspan="4" style="text-align: center; padding: 2rem  ;">
-                <div class="message error" style="margin: 0;">
+              <td colspan="4" style="text-align: center; padding: 2rem;">
+                <div class="message error" style="margin: 0;">  
                   <i class="fas fa-exclamation-circle"></i>Error loading patients
                 </div>
               </td>
             </tr>
           `;
         });
-    } 
+    }
