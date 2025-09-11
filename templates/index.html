@@ -110,6 +110,7 @@
 
   <nav>
     <button onclick="showSection('scan')">Scan QR</button>
+    <button onclick="showSection('generate')">Generate QR</button>
     <button onclick="showSection('add')">Add Patient</button>
     <button onclick="showSection('edit')">Edit Patient</button>
     <button onclick="showSection('view')">View All Patients</button>
@@ -121,6 +122,16 @@
       <h2>Scan Patient QR</h2>
       <div id="reader"></div>
       <div id="result"><p>Waiting for scan...</p></div>
+    </div>
+
+    <!-- Generate QR Section -->
+    <div id="generate" class="section">
+      <h2>Generate QR Code for Patient</h2>
+      <form onsubmit="generateQR(event)">
+        <input type="text" id="generate_patient_id" placeholder="Patient ID" required /><br/>
+        <button class="submit-btn" type="submit">Generate QR Code</button>
+      </form>
+      <div id="qr_result" class="message"></div>
     </div>
 
     <!-- Add Patient Section -->
@@ -164,7 +175,6 @@
   </div>
 
   <script>
-    // Switch sections
     function showSection(id) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
@@ -174,7 +184,6 @@
     function onScanSuccess(decodedText, decodedResult) {
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = `<p>Scanning...</p>`;
-
       let baseUrl = window.location.origin;
       let url = decodedText.startsWith("http") ? decodedText : baseUrl + decodedText;
 
@@ -280,6 +289,34 @@
           }
         });
     }
+
+    // Generate QR
+    function generateQR(event) {
+      event.preventDefault();
+      const patientId = document.getElementById("generate_patient_id").value;
+      const resultDiv = document.getElementById("qr_result");
+
+      fetch("/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `patient_id=${encodeURIComponent(patientId)}`
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.blob();
+        } else {
+          throw new Error("QR generation failed.");
+        }
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        resultDiv.innerHTML = `<p>QR Code Generated:</p><img src="${url}" alt="QR Code" />`;
+      })
+      .catch(err => {
+        resultDiv.innerHTML = `<p style="color:red;">${err.message}</p>`;
+      });
+    }
   </script>
+
 </body>
 </html>

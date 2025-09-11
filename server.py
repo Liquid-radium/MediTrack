@@ -9,10 +9,8 @@ load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
 
-
-# --- Supabase client ---
-url = "https://ojllmtwkbetokuwhhbvz.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbGxtdHdrYmV0b2t1d2hoYnZ6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjM3NDc1NiwiZXhwIjoyMDcxOTUwNzU2fQ.mknxdJdtiKp8s6AO3Dra6Y5yE_S65OB-5Q-GklN5ZNM"
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_SERVICE_KEY")
 supabase = create_client(url, key)
 
 # --- Routes ---
