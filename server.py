@@ -83,6 +83,49 @@ def add_vitals():
         return jsonify({"message": "Vitals added successfully"})
     return jsonify({"error": "Insert failed"}), 500
 
+@app.route("/add_patient", methods=["POST"])
+def add_patient():
+    data = request.json
+    name = data.get("name")
+    age = data.get("age")
+    ward = data.get("ward")
+
+    if not name or not age:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    response = supabase.table("patient").insert({
+        "name": name,
+        "age": age,
+        "ward": ward
+    }).execute()
+
+    if response.data:
+        return jsonify({"message": "Patient added successfully", "patient": response.data[0]}), 201
+    return jsonify({"error": "Insert failed"}), 500
+
+
+@app.route("/edit_patient/<pid>", methods=["PUT"])
+def edit_patient(pid):
+    data = request.json
+    update_data = {}
+
+    if "name" in data:
+        update_data["name"] = data["name"]
+    if "age" in data:
+        update_data["age"] = data["age"]
+    if "ward" in data:
+        update_data["ward"] = data["ward"]
+
+    if not update_data:
+        return jsonify({"error": "No fields to update"}), 400
+
+    response = supabase.table("patient").update(update_data).eq("patient_id", pid).execute()
+
+    if response.data:
+        return jsonify({"message": "Patient updated successfully", "patient": response.data[0]})
+    return jsonify({"error": "Update failed or patient not found"}), 404
+
+
 
 # --- Run the app ---
 if __name__ == "__main__":
