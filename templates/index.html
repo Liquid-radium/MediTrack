@@ -1,50 +1,246 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartBand Patient Monitor</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; }
-    #reader { margin: auto; width: 300px; }
-    #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; display: inline-block; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    nav {
+      margin-bottom: 20px;
+    }
+    nav button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .section {
+      display: none;
+      margin-top: 20px;
+    }
+    .active {
+      display: block;
+    }
+    #reader {
+      margin: auto;
+      width: 300px;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: auto;
+      width: 80%;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
-  <h2>Scan Patient QR</h2>
-  <div id="reader"></div>
-  <div id="result"></div>
+  <h1>SmartBand Patient Monitor</h1>
+
+  <!-- Navigation Menu -->
+  <nav>
+    <button onclick="showSection('scan')">Scan QR</button>
+    <button onclick="showSection('add')">Add Patient</button>
+    <button onclick="showSection('edit')">Edit Patient</button>
+    <button onclick="showSection('view')">View All Patients</button>
+  </nav>
+
+  <!-- QR Scanner Section -->
+  <div id="scan" class="section active">
+    <h2>Scan Patient QR</h2>
+    <div id="reader"></div>
+    <div id="result"><p>Waiting for scan...</p></div>
+  </div>
+
+  <!-- Add Patient Section -->
+  <div id="add" class="section">
+    <h2>Add New Patient</h2>
+    <input type="text" id="add_name" placeholder="Name"/><br/>
+    <input type="number" id="add_age" placeholder="Age"/><br/>
+    <input type="number" id="add_ward" placeholder="Ward"/><br/>
+    <button onclick="addPatient()">Add Patient</button>
+    <div id="add_message"></div>
+  </div>
+
+  <!-- Edit Patient Section -->
+  <div id="edit" class="section">
+    <h2>Edit Patient</h2>
+    <input type="number" id="edit_id" placeholder="Patient ID"/><br/>
+    <input type="text" id="edit_name" placeholder="New Name"/><br/>
+    <input type="number" id="edit_age" placeholder="New Age"/><br/>
+    <input type="number" id="edit_ward" placeholder="New Ward"/><br/>
+    <button onclick="editPatient()">Update Patient</button>
+    <div id="edit_message"></div>
+  </div>
+
+  <!-- View Patients Section -->
+  <div id="view" class="section">
+    <h2>All Patients</h2>
+    <button onclick="loadPatients()">Refresh</button>
+    <table id="patients_table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Ward</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
 
   <script>
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById("result").innerHTML = `<p>Scanning...</p>`;
+    // Show only one section at a time
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
 
-      // Fetch patient info
-      fetch(decodedText)
+    // QR Scanner Setup
+    function onScanSuccess(decodedText, decodedResult) {
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `<p>Scanning...</p>`;
+
+      let baseUrl = window.location.origin;
+      let url = decodedText.startsWith("http") ? decodedText : baseUrl + decodedText;
+
+      fetch(url)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
-            document.getElementById("result").innerHTML = `<p>${data.error}</p>`;
+            resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
           } else {
-            document.getElementById("result").innerHTML =
-              `<h3>${data.name} (Age: ${data.age}, Ward: ${data.ward})</h3>`;
+            resultDiv.innerHTML = `
+              <h3>${data.name}</h3>
+              <p><b>Age:</b> ${data.age}</p>
+              <p><b>Ward:</b> ${data.ward}</p>
+              <div id="vitals"><p>Loading vitals...</p></div>
+            `;
+            fetch(url + "/vitals")
+              .then(res => res.json())
+              .then(vitals => {
+                const vitalsDiv = document.getElementById("vitals");
+                if (vitals.error) {
+                  vitalsDiv.innerHTML = `<p style="color:red;">${vitals.error}</p>`;
+                } else {
+                  vitalsDiv.innerHTML = `
+                    <p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
+                    <p><b>SpO₂:</b> ${vitals.spo2}%</p>
+                    <p><i>Last updated: ${new Date(vitals.timestamp).toLocaleString()}</i></p>
+                  `;
+                }
+              });
           }
-        });
-
-      // Fetch vitals
-      fetch(decodedText + "/vitals")
-        .then(res => res.json())
-        .then(vitals => {
-          if (!vitals.error) {
-            document.getElementById("result").innerHTML +=
-              `<p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
-               <p><b>SpO₂:</b> ${vitals.spo2}%</p>`;
-          }
+        })
+        .catch(err => {
+          resultDiv.innerHTML = `<p style="color:red;">Error fetching patient data.</p>`;
+          console.error(err);
         });
     }
 
-    let html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader", { fps: 10, qrbox: 250 });
+    let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     html5QrcodeScanner.render(onScanSuccess);
+
+    // Add Patient
+    function addPatient() {
+      const name = document.getElementById("add_name").value;
+      const age = document.getElementById("add_age").value;
+      const ward = document.getElementById("add_ward").value;
+      const msgDiv = document.getElementById("add_message");
+
+      fetch("/add_patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, age, ward })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+        }
+      });
+    }
+
+    // Edit Patient
+    function editPatient() {
+      const id = document.getElementById("edit_id").value;
+      const name = document.getElementById("edit_name").value;
+      const age = document.getElementById("edit_age").value;
+      const ward = document.getElementById("edit_ward").value;
+      const msgDiv = document.getElementById("edit_message");
+
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (age) updateData.age = parseInt(age);
+      if (ward) updateData.ward = parseInt(ward);
+
+      fetch(`/edit_patient/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+        }
+      });
+    }
+
+    // Load Patients
+    function loadPatients() {
+      fetch("/patients")
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#patients_table tbody");
+          tbody.innerHTML = "";
+          if (data.error) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color:red;">${data.error}</td></tr>`;
+          } else {
+            data.forEach(patient => {
+              tbody.innerHTML += `
+                <tr>
+                  <td>${patient.patient_id}</td>
+                  <td>${patient.name}</td>
+                  <td>${patient.age}</td>
+                  <td>${patient.ward}</td>
+                </tr>
+              `;
+            });
+          }
+        });
+    }
   </script>
 </body>
 </html>
