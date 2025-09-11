@@ -11,8 +11,8 @@ app = Flask(__name__)
 
 
 # --- Supabase client ---
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_SERVICE_KEY")
+url = "https://ojllmtwkbetokuwhhbvz.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbGxtdHdrYmV0b2t1d2hoYnZ6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjM3NDc1NiwiZXhwIjoyMDcxOTUwNzU2fQ.mknxdJdtiKp8s6AO3Dra6Y5yE_S65OB-5Q-GklN5ZNM"
 supabase = create_client(url, key)
 
 # --- Routes ---
