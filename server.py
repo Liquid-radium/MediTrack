@@ -1,10 +1,14 @@
 from flask import Flask, jsonify, request, render_template, send_file
 import os
+from dotenv import load_dotenv
 import io
 import qrcode
 from supabase import create_client
 
+load_dotenv()  # Load environment variables from .env file
+
 app = Flask(__name__)
+
 
 # --- Supabase client ---
 url = os.environ.get("SUPABASE_URL")
