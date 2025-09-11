@@ -137,9 +137,12 @@ def edit_patient_form():
 def qr_page():
     return render_template("qr_page.html")
 
-@app.route("/view_patients")
-def view_patients():
-    return render_template("view_patients.html")
+@app.route("/patients", methods=["GET"])
+def get_all_patients():
+    response = supabase.table("patient").select("*").execute()
+    if response.data:
+        return jsonify(response.data)
+    return jsonify({"error": "No patients found"}), 404
 
 
 # --- Run the app ---
