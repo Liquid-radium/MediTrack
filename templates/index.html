@@ -7,107 +7,62 @@
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
-      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 20px;
       text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background-color: #007BFF;
-      color: white;
-      padding: 15px 0;
-      font-size: 1.5rem;
-      font-weight: bold;
     }
     nav {
-      background-color: #fff;
-      padding: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
     nav button {
-      background-color: #007BFF;
-      color: white;
-      border: none;
+      margin: 5px;
       padding: 10px 20px;
-      margin: 0 5px;
-      border-radius: 5px;
+      font-size: 1rem;
       cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    nav button:hover {
-      background-color: #0056b3;
-    }
-    .container {
-      max-width: 800px;
-      margin: 20px auto;
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     .section {
       display: none;
+      margin-top: 20px;
     }
-    .section.active {
+    .active {
       display: block;
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      width: 80%;
-      max-width: 300px;
-    }
-    button.submit-btn {
-      background-color: #28a745;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button.submit-btn:hover {
-      background-color: #218838;
     }
     #reader {
       margin: auto;
       width: 300px;
     }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: auto;
+      width: 80%;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
     #result {
       margin-top: 20px;
       padding: 20px;
       border: 1px solid #ccc;
-      background-color: #fafafa;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #f9f9f9;
       border-radius: 8px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 90%;
-      margin: auto;
-      margin-top: 20px;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #007BFF;
-      color: white;
-    }
-    .message {
-      margin-top: 10px;
-      font-weight: bold;
     }
   </style>
 </head>
 <body>
+  <h1>SmartBand Patient Monitor</h1>
 
-  <header>SmartBand Patient Monitor</header>
-
+  <!-- Navigation Menu -->
   <nav>
     <button onclick="showSection('scan')">Scan QR</button>
     <button onclick="showSection('add')">Add Patient</button>
@@ -115,62 +70,60 @@
     <button onclick="showSection('view')">View All Patients</button>
   </nav>
 
-  <div class="container">
-    <!-- Scan QR Section -->
-    <div id="scan" class="section active">
-      <h2>Scan Patient QR</h2>
-      <div id="reader"></div>
-      <div id="result"><p>Waiting for scan...</p></div>
-    </div>
+  <!-- QR Scanner Section -->
+  <div id="scan" class="section active">
+    <h2>Scan Patient QR</h2>
+    <div id="reader"></div>
+    <div id="result"><p>Waiting for scan...</p></div>
+  </div>
 
-    <!-- Add Patient Section -->
-    <div id="add" class="section">
-      <h2>Add New Patient</h2>
-      <input type="text" id="add_name" placeholder="Name" /><br/>
-      <input type="number" id="add_age" placeholder="Age" /><br/>
-      <input type="number" id="add_ward" placeholder="Ward" /><br/>
-      <button class="submit-btn" onclick="addPatient()">Add Patient</button>
-      <div id="add_message" class="message"></div>
-    </div>
+  <!-- Add Patient Section -->
+  <div id="add" class="section">
+    <h2>Add New Patient</h2>
+    <input type="text" id="add_name" placeholder="Name"/><br/>
+    <input type="number" id="add_age" placeholder="Age"/><br/>
+    <input type="number" id="add_ward" placeholder="Ward"/><br/>
+    <button onclick="addPatient()">Add Patient</button>
+    <div id="add_message"></div>
+  </div>
 
-    <!-- Edit Patient Section -->
-    <div id="edit" class="section">
-      <h2>Edit Patient</h2>
-      <input type="number" id="edit_id" placeholder="Patient ID" /><br/>
-      <input type="text" id="edit_name" placeholder="New Name" /><br/>
-      <input type="number" id="edit_age" placeholder="New Age" /><br/>
-      <input type="number" id="edit_ward" placeholder="New Ward" /><br/>
-      <button class="submit-btn" onclick="editPatient()">Update Patient</button>
-      <div id="edit_message" class="message"></div>
-    </div>
+  <!-- Edit Patient Section -->
+  <div id="edit" class="section">
+    <h2>Edit Patient</h2>
+    <input type="number" id="edit_id" placeholder="Patient ID"/><br/>
+    <input type="text" id="edit_name" placeholder="New Name"/><br/>
+    <input type="number" id="edit_age" placeholder="New Age"/><br/>
+    <input type="number" id="edit_ward" placeholder="New Ward"/><br/>
+    <button onclick="editPatient()">Update Patient</button>
+    <div id="edit_message"></div>
+  </div>
 
-    <!-- View All Patients Section -->
-    <div id="view" class="section">
-      <h2>All Patients</h2>
-      <button class="submit-btn" onclick="loadPatients()">Refresh</button>
-      <table id="patients_table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Ward</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-    </div>
+  <!-- View Patients Section -->
+  <div id="view" class="section">
+    <h2>All Patients</h2>
+    <button onclick="loadPatients()">Refresh</button>
+    <table id="patients_table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Ward</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // Switch sections
+    // Show only one section at a time
     function showSection(id) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
 
-    // QR Scanner
+    // QR Scanner Setup
     function onScanSuccess(decodedText, decodedResult) {
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = `<p>Scanning...</p>`;
@@ -215,7 +168,7 @@
     let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     html5QrcodeScanner.render(onScanSuccess);
 
-    // Add patient
+    // Add Patient
     function addPatient() {
       const name = document.getElementById("add_name").value;
       const age = document.getElementById("add_age").value;
@@ -229,11 +182,15 @@
       })
       .then(res => res.json())
       .then(data => {
-        msgDiv.innerHTML = data.error ? `<p style="color:red;">${data.error}</p>` : `<p style="color:green;">${data.message}</p>`;
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+        }
       });
     }
 
-    // Edit patient
+    // Edit Patient
     function editPatient() {
       const id = document.getElementById("edit_id").value;
       const name = document.getElementById("edit_name").value;
@@ -253,12 +210,15 @@
       })
       .then(res => res.json())
       .then(data => {
-        msgDiv.innerHTML = data.error ? `<p style="color:red;">${data.error}</p>` : `<p style="color:green;">${data.message}</p>`;
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+        }
       });
     }
 
-    // Load all patients
-
+    // Load Patients
     function loadPatients() {
       fetch("/patients")
         .then(res => res.json())
@@ -269,15 +229,18 @@
             tbody.innerHTML = `<tr><td colspan="4" style="color:red;">${data.error}</td></tr>`;
           } else {
             data.forEach(patient => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${patient.patient_id}</td>
-                <td>${patient.name}</td>
-                <td>${patient.age}</td>
-                <td>${patient.ward || ''}</td>
+              tbody.innerHTML += `
+                <tr>
+                  <td>${patient.patient_id}</td>
+                  <td>${patient.name}</td>
+                  <td>${patient.age}</td>
+                  <td>${patient.ward}</td>
+                </tr>
               `;
-              tbody.appendChild(row);
             });
           }
         });
-    } 
+    }
+  </script>
+</body>
+</html>
