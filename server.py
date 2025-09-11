@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import os
 from supabase import create_client
 
@@ -9,9 +9,12 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_SERVICE_KEY")
 supabase = create_client(url, key)
 
+# --- Routes ---
+
+# Serve the frontend UI
 @app.route("/")
 def home():
-    return jsonify({"message": "SmartBand API running 🚀"})
+    return render_template("index.html")
 
 
 # 1. Fetch patient details after QR scan
@@ -59,6 +62,6 @@ def add_vitals():
     return jsonify({"error": "Insert failed"}), 500
 
 
-# --- Run locally ---
+# --- Run the app ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
