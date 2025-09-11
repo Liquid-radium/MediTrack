@@ -125,6 +125,13 @@ def edit_patient(pid):
         return jsonify({"message": "Patient updated successfully", "patient": response.data[0]})
     return jsonify({"error": "Update failed or patient not found"}), 404
 
+@app.route("/add_patient_form")
+def add_patient_form():
+    return render_template("add_patient.html")
+
+@app.route("/edit_patient_form")
+def edit_patient_form():
+    return render_template("edit_patient.html")
 
 
 # --- Run the app ---
