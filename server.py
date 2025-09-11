@@ -133,18 +133,6 @@ def add_patient_form():
 def edit_patient_form():
     return render_template("edit_patient.html")
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/add_patient_form")
-def add_patient_form():
-    return render_template("add_patient.html")
-
-@app.route("/edit_patient_form")
-def edit_patient_form():
-    return render_template("edit_patient.html")
-
 @app.route("/qr_page")
 def qr_page():
     return render_template("qr_page.html")
