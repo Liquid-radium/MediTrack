@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>SmartBand Patient Monitor</title>
-  <!-- QR scanner library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; }
@@ -17,7 +16,6 @@
 
   <script>
     function onScanSuccess(decodedText, decodedResult) {
-      // Example QR contains: https://software-part.onrender.com/patient/5
       document.getElementById("result").innerHTML = `<p>Scanning...</p>`;
 
       // Fetch patient info
@@ -44,7 +42,6 @@
         });
     }
 
-    // Start QR scanner
     let html5QrcodeScanner = new Html5QrcodeScanner(
       "reader", { fps: 10, qrbox: 250 });
     html5QrcodeScanner.render(onScanSuccess);
