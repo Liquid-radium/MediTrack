@@ -5,727 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartBand Patient Monitor</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    :root {
-      --primary-blue: #2563eb;
-      --primary-blue-dark: #1d4ed8;
-      --secondary-teal: #14b8a6;
-      --accent-green: #10b981;
-      --accent-red: #ef4444;
-      --accent-orange: #f59e0b;
-      --neutral-50: #f8fafc;
-      --neutral-100: #f1f5f9;
-      --neutral-200: #e2e8f0;
-      --neutral-300: #cbd5e1;
-      --neutral-600: #475569;
-      --neutral-700: #334155;
-      --neutral-800: #1e293b;
-      --neutral-900: #0f172a;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
-      min-height: 100vh;
-      color: var(--neutral-700);
-      line-height: 1.6;
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
     }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-
-    /* Header */
-    header {
-      background: white;
-      box-shadow: var(--shadow-sm);
-      border-bottom: 1px solid var(--neutral-200);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 0;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--primary-blue);
-    }
-
-    .logo i {
-      font-size: 2rem;
-      color: var(--secondary-teal);
-    }
-
-    .header-info {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      color: var(--neutral-600);
-      font-size: 0.9rem;
-    }
-
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--accent-green);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    /* Navigation */
     nav {
-      background: white;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--neutral-200);
+      margin-bottom: 20px;
     }
-
-    .nav-container {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .nav-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      background: var(--neutral-100);
-      border: 2px solid transparent;
-      border-radius: 12px;
-      color: var(--neutral-600);
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s ease;
+    nav button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
       cursor: pointer;
-      font-size: 0.95rem;
     }
-
-    .nav-btn:hover {
-      background: var(--neutral-200);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .nav-btn.active {
-      background: var(--primary-blue);
-      color: white;
-      box-shadow: var(--shadow-md);
-    }
-
-    .nav-btn.active:hover {
-      background: var(--primary-blue-dark);
-    }
-
-    /* Main Content */
-    main {
-      padding: 2rem 0;
-    }
-
     .section {
       display: none;
-      animation: fadeIn 0.3s ease-in;
+      margin-top: 20px;
     }
-
-    .section.active {
+    .active {
       display: block;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--neutral-200);
-      margin-bottom: 2rem;
-    }
-
-    .card h2 {
-      color: var(--neutral-800);
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .card h2 i {
-      color: var(--secondary-teal);
-    }
-
-    /* QR Scanner Styles */
     #reader {
-      margin: 0 auto 2rem;
-      max-width: 400px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
+      margin: auto;
+      width: 300px;
     }
-
-    #result {
-      background: var(--neutral-50);
-      border: 2px dashed var(--neutral-300);
-      border-radius: 12px;
-      padding: 2rem;
-      text-align: center;
-      max-width: 500px;
-      margin: 0 auto;
-      transition: all 0.3s ease;
+    input, button {
+      padding: 8px;
+      margin: 5px;
     }
-
-    #result.scanning {
-      border-color: var(--secondary-teal);
-      background: rgba(20, 184, 166, 0.05);
-    }
-
-    .patient-info {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: var(--shadow-sm);
-      border-left: 4px solid var(--secondary-teal);
-    }
-
-    .patient-info h3 {
-      color: var(--neutral-800);
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-    }
-
-    .patient-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .detail-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-    }
-
-    .detail-item strong {
-      color: var(--neutral-600);
-      font-weight: 500;
-    }
-
-    .vitals-container {
-      background: var(--neutral-50);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-top: 1rem;
-    }
-
-    .vitals-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 1rem;
-    }
-
-    .vital-card {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--neutral-200);
-    }
-
-    .vital-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--primary-blue);
-    }
-
-    .vital-label {
-      font-size: 0.8rem;
-      color: var(--neutral-600);
-      margin-top: 4px;
-    }
-
-    /* Form Styles */
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
-    }
-
-    label {
-      display: block;
-      font-weight: 500;
-      color: var(--neutral-700);
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    select {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid var(--neutral-300);
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      background: white;
-    }
-
-    input:focus,
-    select:focus {
-      outline: none;
-      border-color: var(--primary-blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      background: var(--primary-blue);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-    }
-
-    .btn:hover {
-      background: var(--primary-blue-dark);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn.btn-secondary {
-      background: var(--neutral-600);
-    }
-
-    .btn.btn-secondary:hover {
-      background: var(--neutral-700);
-    }
-
-    .btn.btn-success {
-      background: var(--accent-green);
-    }
-
-    .btn.btn-danger {
-      background: var(--accent-red);
-    }
-
-    /* Message Styles */
-    .message {
-      padding: 1rem 1.25rem;
-      border-radius: 8px;
-      margin-top: 1rem;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .message.success {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--accent-green);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .message.error {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--accent-red);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    /* Table Styles */
-    .table-container {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--neutral-200);
-    }
-
     table {
-      width: 100%;
       border-collapse: collapse;
+      margin: auto;
+      width: 80%;
     }
-
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
     th {
-      background: var(--neutral-50);
-      padding: 1rem;
-      text-align: left;
-      font-weight: 600;
-      color: var(--neutral-700);
-      border-bottom: 2px solid var(--neutral-200);
-      font-size: 0.9rem;
+      background-color: #f2f2f2;
     }
-
-    td {
-      padding: 1rem;
-      border-bottom: 1px solid var(--neutral-200);
-      font-size: 0.95rem;
-    }
-
-    tbody tr:hover {
-      background: var(--neutral-50);
-    }
-
-    tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .table-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .search-box {
-      position: relative;
-      max-width: 300px;
-    }
-
-    .search-box input {
-      padding-left: 40px;
-      margin-bottom: 0;
-    }
-
-    .search-box i {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--neutral-400);
-    }
-
-    /* Loading States */
-    .loading {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--neutral-600);
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid var(--neutral-300);
-      border-top: 2px solid var(--secondary-teal);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .container {
-        padding: 0 15px;
-      }
-      
-      .card {
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-      }
-      
-      .form-row {
-        grid-template-columns: 1fr;
-      }
-      
-      .header-info {
-        display: none;
-      }
-      
-      .nav-container {
-        justify-content: flex-start;
-        overflow-x: auto;
-        padding-bottom: 5px;
-      }
-      
-      .nav-btn {
-        flex-shrink: 0;
-      }
+    #result {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #f9f9f9;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <div class="header-content">
-        <div class="logo">
-          <i class="fas fa-heartbeat"></i>
-          <span>SmartBand Monitor</span>
-        </div>
-        <div class="header-info">
-          <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span>System Online</span>
-          </div>
-          <div>
-            <i class="fas fa-clock"></i>
-            <span id="current-time"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
+  <h1>SmartBand Patient Monitor</h1>
 
+  <!-- Navigation Menu -->
   <nav>
-    <div class="container">
-      <div class="nav-container">
-        <button class="nav-btn active" onclick="showSection('scan')">
-          <i class="fas fa-qrcode"></i>
-          Scan QR
-        </button>
-        <button class="nav-btn" onclick="showSection('add')">
-          <i class="fas fa-user-plus"></i>
-          Add Patient
-        </button>
-        <button class="nav-btn" onclick="showSection('edit')">
-          <i class="fas fa-user-edit"></i>
-          Edit Patient
-        </button>
-        <button class="nav-btn" onclick="showSection('view')">
-          <i class="fas fa-users"></i>
-          View Patients
-        </button>
-      </div>
-    </div>
+    <button onclick="showSection('scan')">Scan QR</button>
+    <button onclick="showSection('add')">Add Patient</button>
+    <button onclick="showSection('edit')">Edit Patient</button>
+    <button onclick="showSection('view')">View All Patients</button>
   </nav>
 
-  <main>
-    <div class="container">
-      <!-- QR Scanner Section -->
-      <div id="scan" class="section active">
-        <div class="card">
-          <h2>
-            <i class="fas fa-qrcode"></i>
-            Scan Patient QR Code
-          </h2>
-          <div id="reader"></div>
-          <div id="result">
-            <div class="loading">
-              <i class="fas fa-qrcode" style="font-size: 2rem; color: var(--neutral-400);"></i>
-              <div>
-                <p style="margin-bottom: 0.5rem; font-weight: 600;">Ready to Scan</p>
-                <p style="font-size: 0.9rem; color: var(--neutral-600);">Position QR code within the camera frame</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- QR Scanner Section -->
+  <div id="scan" class="section active">
+    <h2>Scan Patient QR</h2>
+    <div id="reader"></div>
+    <div id="result"><p>Waiting for scan...</p></div>
+  </div>
 
-      <!-- Add Patient Section -->
-      <div id="add" class="section">
-        <div class="card">
-          <h2>
-            <i class="fas fa-user-plus"></i>
-            Add New Patient
-          </h2>
-          <form onsubmit="addPatient(event)">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="add_name">
-                  <i class="fas fa-user"></i> Patient Name
-                </label>
-                <input type="text" id="add_name" placeholder="Enter full name" required/>
-              </div>
-              <div class="form-group">
-                <label for="add_age">
-                  <i class="fas fa-birthday-cake"></i> Age
-                </label>
-                <input type="number" id="add_age" placeholder="Enter age" min="0" max="150" required/>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="add_ward">
-                  <i class="fas fa-bed"></i> Ward Number
-                </label>
-                <input type="number" id="add_ward" placeholder="Enter ward number" min="1" required/>
-              </div>
-            </div>
-            <button type="submit" class="btn">
-              <i class="fas fa-plus"></i>
-              Add Patient
-            </button>
-            <div id="add_message"></div>
-          </form>
-        </div>
-      </div>
+  <!-- Add Patient Section -->
+  <div id="add" class="section">
+    <h2>Add New Patient</h2>
+    <input type="text" id="add_name" placeholder="Name"/><br/>
+    <input type="number" id="add_age" placeholder="Age"/><br/>
+    <input type="number" id="add_ward" placeholder="Ward"/><br/>
+    <button onclick="addPatient()">Add Patient</button>
+    <div id="add_message"></div>
+  </div>
 
-      <!-- Edit Patient Section -->
-      <div id="edit" class="section">
-        <div class="card">
-          <h2>
-            <i class="fas fa-user-edit"></i>
-            Edit Patient Information
-          </h2>
-          <form onsubmit="editPatient(event)">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="edit_id">
-                  <i class="fas fa-id-card"></i> Patient ID
-                </label>
-                <input type="number" id="edit_id" placeholder="Enter patient ID" required/>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="edit_name">
-                  <i class="fas fa-user"></i> New Name (optional)
-                </label>
-                <input type="text" id="edit_name" placeholder="Enter new name"/>
-              </div>
-              <div class="form-group">
-                <label for="edit_age">
-                  <i class="fas fa-birthday-cake"></i> New Age (optional)
-                </label>
-                <input type="number" id="edit_age" placeholder="Enter new age" min="0" max="150"/>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="edit_ward">
-                  <i class="fas fa-bed"></i> New Ward (optional)
-                </label>
-                <input type="number" id="edit_ward" placeholder="Enter new ward" min="1"/>
-              </div>
-            </div>
-            <button type="submit" class="btn">
-              <i class="fas fa-save"></i>
-              Update Patient
-            </button>
-            <div id="edit_message"></div>
-          </form>
-        </div>
-      </div>
+  <!-- Edit Patient Section -->
+  <div id="edit" class="section">
+    <h2>Edit Patient</h2>
+    <input type="number" id="edit_id" placeholder="Patient ID"/><br/>
+    <input type="text" id="edit_name" placeholder="New Name"/><br/>
+    <input type="number" id="edit_age" placeholder="New Age"/><br/>
+    <input type="number" id="edit_ward" placeholder="New Ward"/><br/>
+    <button onclick="editPatient()">Update Patient</button>
+    <div id="edit_message"></div>
+  </div>
 
-      <!-- View Patients Section -->
-      <div id="view" class="section">
-        <div class="card">
-          <h2>
-            <i class="fas fa-users"></i>
-            Patient Database
-          </h2>
-          <div class="table-actions">
-            <div class="search-box">
-              <i class="fas fa-search"></i>
-              <input type="text" id="search-input" placeholder="Search patients..." onkeyup="filterTable()"/>
-            </div>
-            <button class="btn" onclick="loadPatients()">
-              <i class="fas fa-sync-alt"></i>
-              Refresh
-            </button>
-          </div>
-          <div class="table-container">
-            <table id="patients_table">
-              <thead>
-                <tr>
-                  <th><i class="fas fa-id-card"></i> ID</th>
-                  <th><i class="fas fa-user"></i> Name</th>
-                  <th><i class="fas fa-birthday-cake"></i> Age</th>
-                  <th><i class="fas fa-bed"></i> Ward</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colspan="4" style="text-align: center; padding: 2rem; color: var(--neutral-500);">
-                    <div class="loading">
-                      <div class="spinner"></div>
-                      <span>Click refresh to load patients...</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
+  <!-- View Patients Section -->
+  <div id="view" class="section">
+    <h2>All Patients</h2>
+    <button onclick="loadPatients()">Refresh</button>
+    <table id="patients_table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Ward</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
 
   <script>
-    // Update current time
-    function updateTime() {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      const timeElement = document.getElementById('current-time');
-      if (timeElement) {
-        timeElement.textContent = timeString;
-      }
-    }
-    updateTime();
-    setInterval(updateTime, 60000);
-
     // Show only one section at a time
     function showSection(id) {
-      // Update nav buttons
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      
-      // Find and activate the clicked button
-      const clickedBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => 
-        btn.getAttribute('onclick').includes(id)
-      );
-      if (clickedBtn) {
-        clickedBtn.classList.add('active');
-      }
-      
-      // Update sections
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
@@ -733,13 +126,7 @@
     // QR Scanner Setup
     function onScanSuccess(decodedText, decodedResult) {
       const resultDiv = document.getElementById("result");
-      resultDiv.className = "scanning";
-      resultDiv.innerHTML = `
-        <div class="loading">
-          <div class="spinner"></div>
-          <span>Fetching patient data...</span>
-        </div>
-      `;
+      resultDiv.innerHTML = `<p>Scanning...</p>`;
 
       let baseUrl = window.location.origin;
       let url = decodedText.startsWith("http") ? decodedText : baseUrl + decodedText;
@@ -748,74 +135,33 @@
         .then(res => res.json())
         .then(data => {
           if (data.error) {
-            resultDiv.className = "";
-            resultDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>${data.error}</div>`;
+            resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
           } else {
-            resultDiv.className = "";
             resultDiv.innerHTML = `
-              <div class="patient-info">
-                <h3><i class="fas fa-user"></i> ${data.name}</h3>
-                <div class="patient-details">
-                  <div class="detail-item">
-                    <i class="fas fa-id-card"></i>
-                    <strong>ID:</strong> ${data.patient_id || 'N/A'}
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-birthday-cake"></i>
-                    <strong>Age:</strong> ${data.age} years
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-bed"></i>
-                    <strong>Ward:</strong> ${data.ward}
-                  </div>
-                </div>
-                <div class="vitals-container">
-                  <div id="vitals">
-                    <div class="loading">
-                      <div class="spinner"></div>
-                      <span>Loading vitals...</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h3>${data.name}</h3>
+              <p><b>Age:</b> ${data.age}</p>
+              <p><b>Ward:</b> ${data.ward}</p>
+              <div id="vitals"><p>Loading vitals...</p></div>
             `;
-            
-            // Fetch vitals
             fetch(url + "/vitals")
               .then(res => res.json())
               .then(vitals => {
                 const vitalsDiv = document.getElementById("vitals");
                 if (vitals.error) {
-                  vitalsDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>${vitals.error}</div>`;
+                  vitalsDiv.innerHTML = `<p style="color:red;">${vitals.error}</p>`;
                 } else {
                   vitalsDiv.innerHTML = `
-                    <div style="margin-bottom: 1rem;">
-                      <strong><i class="fas fa-heartbeat"></i> Vital Signs</strong>
-                    </div>
-                    <div class="vitals-grid">
-                      <div class="vital-card">
-                        <div class="vital-value">${vitals.heart_rate}</div>
-                        <div class="vital-label">BPM</div>
-                      </div>
-                      <div class="vital-card">
-                        <div class="vital-value">${vitals.spo2}%</div>
-                        <div class="vital-label">SpO₂</div>
-                      </div>
-                    </div>
-                    <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--neutral-600);">
-                      <i class="fas fa-clock"></i> Last updated: ${new Date(vitals.timestamp).toLocaleString()}
-                    </div>
+                    <p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
+                    <p><b>SpO₂:</b> ${vitals.spo2}%</p>
+                    <p><i>Last updated: ${new Date(vitals.timestamp).toLocaleString()}</i></p>
                   `;
                 }
-              })
-              .catch(err => {
-                document.getElementById("vitals").innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>Error loading vitals</div>`;
               });
           }
         })
         .catch(err => {
-          resultDiv.className = "";
-          resultDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>Error fetching patient data</div>`;
+          resultDiv.innerHTML = `<p style="color:red;">Error fetching patient data.</p>`;
+          console.error(err);
         });
     }
 
@@ -823,8 +169,7 @@
     html5QrcodeScanner.render(onScanSuccess);
 
     // Add Patient
-    function addPatient(event) {
-      event.preventDefault();
+    function addPatient() {
       const name = document.getElementById("add_name").value;
       const age = document.getElementById("add_age").value;
       const ward = document.getElementById("add_ward").value;
@@ -833,25 +178,20 @@
       fetch("/add_patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, age: parseInt(age), ward: parseInt(ward) })
+        body: JSON.stringify({ name, age, ward })
       })
       .then(res => res.json())
       .then(data => {
         if (data.error) {
-          msgDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>${data.error}</div>`;
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
         } else {
-          msgDiv.innerHTML = `<div class="message success"><i class="fas fa-check-circle"></i>${data.message}</div>`;
-          document.querySelector('#add form').reset();
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
         }
-      })
-      .catch(err => {
-        msgDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>Error adding patient</div>`;
       });
     }
 
     // Edit Patient
-    function editPatient(event) {
-      event.preventDefault();
+    function editPatient() {
       const id = document.getElementById("edit_id").value;
       const name = document.getElementById("edit_name").value;
       const age = document.getElementById("edit_age").value;
@@ -871,75 +211,36 @@
       .then(res => res.json())
       .then(data => {
         if (data.error) {
-          msgDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>${data.error}</div>`;
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
         } else {
-          msgDiv.innerHTML = `<div class="message success"><i class="fas fa-check-circle"></i>${data.message}</div>`;
-          document.querySelector('#edit form').reset();
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
         }
-      })
-      .catch(err => {
-        msgDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i>Error updating patient</div>`;
       });
     }
 
     // Load Patients
     function loadPatients() {
-      const tbody = document.querySelector("#patients_table tbody");
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" style="text-align: center; padding: 2rem;">
-            <div class="loading">
-              <div class="spinner"></div>
-              <span>Loading patients...</span>
-            </div>
-          </td>
-        </tr>
-      `;
-
       fetch("/patients")
         .then(res => res.json())
         .then(data => {
+          const tbody = document.querySelector("#patients_table tbody");
           tbody.innerHTML = "";
           if (data.error) {
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 2rem;">
-                  <div class="message error" style="margin: 0;">
-                    <i class="fas fa-exclamation-circle"></i>${data.error}
-                  </div>
-                </td>
-              </tr>
-            `;
-          } else if (data.length === 0) {
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 2rem; color: var(--neutral-500);">
-                  No patients found.
-                </td>
-              </tr>
-            `;
+            tbody.innerHTML = `<tr><td colspan="4" style="color:red;">${data.error}</td></tr>`;
           } else {
             data.forEach(patient => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${patient.patient_id || 'N/A'}</td>
-                <td>${patient.name}</td>  
-                <td>${patient.age}</td>
-                <td>${patient.ward}</td>
+              tbody.innerHTML += `
+                <tr>
+                  <td>${patient.patient_id}</td>
+                  <td>${patient.name}</td>
+                  <td>${patient.age}</td>
+                  <td>${patient.ward}</td>
+                </tr>
               `;
-              tbody.appendChild(row);
             });
           }
-        })
-        .catch(err => {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 2rem;">
-                <div class="message error" style="margin: 0;">  
-                  <i class="fas fa-exclamation-circle"></i>Error loading patients
-                </div>
-              </td>
-            </tr>
-          `;
         });
     }
+  </script>
+</body>
+</html>
