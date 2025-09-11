@@ -291,31 +291,38 @@
     }
 
     // Generate QR
-    function generateQR(event) {
-      event.preventDefault();
-      const patientId = document.getElementById("generate_patient_id").value;
-      const resultDiv = document.getElementById("qr_result");
+function generateQR(event) {
+  event.preventDefault();
+  const patientId = document.getElementById("generate_patient_id").value;
+  const resultDiv = document.getElementById("qr_result");
 
-      fetch("/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `patient_id=${encodeURIComponent(patientId)}`
-      })
-      .then(response => {
-        if (response.ok) {
-          return response.blob();
-        } else {
-          throw new Error("QR generation failed.");
-        }
-      })
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        resultDiv.innerHTML = `<p>QR Code Generated:</p><img src="${url}" alt="QR Code" />`;
-      })
-      .catch(err => {
-        resultDiv.innerHTML = `<p style="color:red;">${err.message}</p>`;
-      });
+  fetch("/admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `patient_id=${encodeURIComponent(patientId)}`
+  })
+  .then(response => {
+    if (response.ok) {
+      return response.blob();
+    } else {
+      throw new Error("QR generation failed.");
     }
+  })
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    resultDiv.innerHTML = `
+      <p>QR Code Generated:</p>
+      <img src="${url}" alt="QR Code" /><br/>
+      <a href="${url}" download="patient_${patientId}.png">
+        <button class="submit-btn">Download QR Code</button>
+      </a>
+    `;
+  })
+  .catch(err => {
+    resultDiv.innerHTML = `<p style="color:red;">${err.message}</p>`;
+  });
+}
+
   </script>
 
 </body>
