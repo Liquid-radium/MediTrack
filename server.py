@@ -153,6 +153,19 @@ def delete_patient(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/get_vitals/<int:patient_id>", methods=["GET"])
+def get_vitals(patient_id):
+    try:
+        # Fetch latest vitals for this patient
+        response = supabase.table("vitals").select("*").eq("patient_id", patient_id).order("timestamp", desc=True).limit(1).execute()
+
+        if response.data:
+            return jsonify(response.data[0])   # send the latest record
+        else:
+            return jsonify({"error": "No vitals found for this patient"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # --- Run the app ---
 if __name__ == "__main__":

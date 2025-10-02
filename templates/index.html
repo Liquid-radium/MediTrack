@@ -145,20 +145,42 @@
       <div id="add_message" class="message"></div>
     </div>
 
-    <!-- View All Patients Section -->
-    <div id="view" class="section">
-      <h2>All Patients</h2>
-      <button class="submit-btn" onclick="loadPatients()">Refresh</button>
-      <table id="patients_table">
+  <!-- View All Patients Section -->
+  <div id="view" class="section">
+    <h2>All Patients</h2>
+    <button class="submit-btn" onclick="loadPatients()">Refresh</button>
+    
+    <table id="patients_table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Ward</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Patients will be loaded here -->
+      </tbody>
+    </table>
+
+    <!-- Display Vitals Section -->
+    <h3>Display Vitals</h3>
+    <input type="text" id="vitals-patient-id" placeholder="Enter Patient ID">
+    <button onclick="loadVitals()">Show Vitals</button>
+
+    <div id="vitals-data" style="margin-top:20px;">
+      <table id="vitals-table" border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Ward</th>
+            <th>Patient ID</th>
+            <th>Heart Rate (bpm)</th>
+            <th>SpO₂ (%)</th>
+            <th>Timestamp</th>
           </tr>
         </thead>
         <tbody>
+          <!-- Vitals rows will be inserted here dynamically -->
         </tbody>
       </table>
     </div>
@@ -343,6 +365,39 @@ function dischargePatient() {
       ? `<p style="color:red;">${data.error}</p>` 
       : `<p style="color:green;">${data.message}</p>`;
   });
+}
+
+function loadVitals() {
+  const patientId = document.getElementById("vitals-patient-id").value;
+  if (!patientId) {
+    alert("Please enter a patient ID");
+    return;
+  }
+
+  function fetchVitals() {
+    fetch(`/get_vitals/${patientId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          document.getElementById("vitals-data").innerHTML = `<p style="color:red">${data.error}</p>`;
+        } else {
+          document.getElementById("vitals-data").innerHTML = `
+            <h4>Vitals for Patient ${patientId}</h4>
+            <p><b>Heart Rate:</b> ${data.heart_rate} bpm</p>
+            <p><b>SpO₂:</b> ${data.spo2} %</p>
+            <p><b>Temperature:</b> ${data.temperature} °C</p>
+            <p><i>Last updated at: ${new Date(data.timestamp).toLocaleString()}</i></p>
+          `;
+        }
+      })
+      .catch(err => console.error(err));
+  }
+
+  // fetch immediately
+  fetchVitals();
+
+  // auto-refresh every 5 seconds
+  setInterval(fetchVitals, 5000);
 }
 
   </script>
