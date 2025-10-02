@@ -132,8 +132,17 @@ def get_vitals(patient_id):
             return jsonify({"error": "No vitals found for this patient"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+from flask import redirect, request
+
+@app.before_request
+def enforce_https():
+    if not request.is_secure:
+        url = request.url.replace("http://", "https://", 1)
+        return redirect(url, code=301)
 
 
 # --- Run the app ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+    app.run(debug=False)
