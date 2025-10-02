@@ -145,7 +145,7 @@ def get_all_patients():
 @app.route("/delete_patient/<int:patient_id>", methods=["DELETE"])
 def delete_patient(patient_id):
     try:
-        response = supabase.table("patients").delete().eq("patient_id", patient_id).execute()
+        response = supabase.table("patient").delete().eq("patient_id", patient_id).execute()
         if response.data:
             return jsonify({"message": f"Patient {patient_id} discharged successfully!"})
         else:
