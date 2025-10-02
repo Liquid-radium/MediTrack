@@ -48,39 +48,6 @@ def get_patient(pid):
     return jsonify({"error": "Patient not found"}), 404
 
 
-@app.route("/patient/<pid>/vitals", methods=["GET"])
-def get_vitals(pid):
-    response = (
-        supabase.table("vitals")
-        .select("*")
-        .eq("patient_id", pid)
-        .order("timestamp", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if response.data:
-        return jsonify(response.data[0])
-    return jsonify({"error": "No vitals found"}), 404
-
-
-@app.route("/add_vitals", methods=["POST"])
-def add_vitals():
-    data = request.json
-    pid = data.get("patient_id")
-    heart_rate = data.get("heart_rate")
-    spo2 = data.get("spo2")
-
-    if not pid:
-        return jsonify({"error": "Missing patient_id"}), 400
-
-    response = supabase.table("vitals").insert(
-        {"patient_id": pid, "heart_rate": heart_rate, "spo2": spo2}
-    ).execute()
-
-    if response.data:
-        return jsonify({"message": "Vitals added successfully"})
-    return jsonify({"error": "Insert failed"}), 500
-
 @app.route("/add_patient", methods=["POST"])
 def add_patient():
     data = request.json
