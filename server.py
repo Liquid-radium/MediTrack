@@ -133,16 +133,15 @@ def get_vitals(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-from flask import redirect, request
+from flask import request, redirect
 
 @app.before_request
 def enforce_https():
-    if not request.is_secure:
+    if not request.is_secure and os.environ.get("FLASK_ENV") == "production":
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
 
-
 # --- Run the app ---
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-    app.run(debug=False)
+#if __name__ == "__main__":
+#    app.run(host="0.0.0.0", port=5000)
+#    app.run(debug=False)
