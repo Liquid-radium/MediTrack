@@ -143,7 +143,7 @@ def enforce_https():
     
 @app.route("/patients/<int:patient_id>", methods=["GET"])
 def get_patient_with_id(patient_id):
-    patient = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    patient = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
     if patient.data:
         return jsonify(patient.data[0])
     else:
