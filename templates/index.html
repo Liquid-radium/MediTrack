@@ -114,6 +114,7 @@
     <button onclick="showSection('add')">Add Patient</button>
     <button onclick="showSection('edit')">Edit Patient</button>
     <button onclick="showSection('view')">View All Patients</button>
+    <button onclick="showSection('discharge')">Discharge Patient</button>
   </nav>
 
   <div class="container">
@@ -173,6 +174,15 @@
       </table>
     </div>
   </div>
+
+  <!-- Discharge Patient Section -->
+  <div id="discharge" class="section">
+    <h2>Discharge Patient</h2>
+    <input type="number" id="discharge_id" placeholder="Patient ID" /><br/>
+    <button class="submit-btn" onclick="dischargePatient()">Discharge</button>
+    <div id="discharge_message" class="message"></div>
+  </div>
+
 
   <script>
     function showSection(id) {
@@ -322,6 +332,20 @@ function generateQR(event) {
     resultDiv.innerHTML = `<p style="color:red;">${err.message}</p>`;
   });
 }
+
+function dischargePatient() {
+  const id = document.getElementById("discharge_id").value;
+  const msgDiv = document.getElementById("discharge_message");
+
+  fetch(`/delete_patient/${id}`, { method: "DELETE" })
+    .then(res => res.json())
+    .then(data => {
+      msgDiv.innerHTML = data.error
+        ? `<p style="color:red;">${data.error}</p>`
+        : `<p style="color:green;">${data.message}</p>`;
+    });
+}
+
 
   </script>
 
