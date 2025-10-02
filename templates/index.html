@@ -146,17 +146,6 @@
       <div id="add_message" class="message"></div>
     </div>
 
-    <!-- Edit Patient Section -->
-    <div id="edit" class="section">
-      <h2>Edit Patient</h2>
-      <input type="number" id="edit_id" placeholder="Patient ID" /><br/>
-      <input type="text" id="edit_name" placeholder="New Name" /><br/>
-      <input type="number" id="edit_age" placeholder="New Age" /><br/>
-      <input type="number" id="edit_ward" placeholder="New Ward" /><br/>
-      <button class="submit-btn" onclick="editPatient()">Update Patient</button>
-      <div id="edit_message" class="message"></div>
-    </div>
-
     <!-- View All Patients Section -->
     <div id="view" class="section">
       <h2>All Patients</h2>
@@ -176,14 +165,17 @@
     </div>
   </div>
 
-  <!-- Discharge Patient Section -->
-  <div id="discharge" class="section">
-    <h2>Discharge Patient</h2>
-    <input type="number" id="discharge_id" placeholder="Patient ID" /><br/>
-    <button class="submit-btn" onclick="dischargePatient()">Discharge</button>
-    <div id="discharge_message" class="message"></div>
+  <!-- Edit Patient Section -->
+  <div id="edit" class="section">
+    <h2>Edit Patient</h2>
+    <input type="number" id="edit_id" placeholder="Patient ID" /><br/>
+    <input type="text" id="edit_name" placeholder="New Name" /><br/>
+    <input type="number" id="edit_age" placeholder="New Age" /><br/>
+    <input type="number" id="edit_ward" placeholder="New Ward" /><br/>
+    <button class="submit-btn" onclick="editPatient()">Update Patient</button>
+    <button class="submit-btn" style="background-color:red;" onclick="dischargePatient()">Discharge Patient</button>
+    <div id="edit_message" class="message"></div>
   </div>
-
 
   <script>
     function showSection(id) {
@@ -335,18 +327,24 @@ function generateQR(event) {
 }
 
 function dischargePatient() {
-  const id = document.getElementById("discharge_id").value;
-  const msgDiv = document.getElementById("discharge_message");
+  const id = document.getElementById("edit_id").value;
+  const msgDiv = document.getElementById("edit_message");
 
-  fetch(`/delete_patient/${id}`, { method: "DELETE" })
-    .then(res => res.json())
-    .then(data => {
-      msgDiv.innerHTML = data.error
-        ? `<p style="color:red;">${data.error}</p>`
-        : `<p style="color:green;">${data.message}</p>`;
-    });
+  if (!id) {
+    msgDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+    return;
+  }
+
+  fetch(`/delete_patient/${id}`, {
+    method: "DELETE"
+  })
+  .then(res => res.json())
+  .then(data => {
+    msgDiv.innerHTML = data.error 
+      ? `<p style="color:red;">${data.error}</p>` 
+      : `<p style="color:green;">${data.message}</p>`;
+  });
 }
-
 
   </script>
 
