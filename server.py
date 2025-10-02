@@ -140,6 +140,15 @@ def enforce_https():
     if not request.is_secure and os.environ.get("FLASK_ENV") == "production":
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
+    
+@app.route("/patients/<int:patient_id>", methods=["GET"])
+def get_patient(patient_id):
+    patient = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    if patient.data:
+        return jsonify(patient.data[0])
+    else:
+        return jsonify({"error": "Patient not found"}), 404
+
 
 # --- Run the app ---
 #if __name__ == "__main__":
