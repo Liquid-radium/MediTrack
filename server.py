@@ -141,7 +141,7 @@ def enforce_https():
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
     
-@app.route("/patients/<int:patient_id>", methods=["GET"])
+@app.route("/patient/<int:patient_id>", methods=["GET"])
 def get_patient_with_id(patient_id):
     patient = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
     if patient.data:
