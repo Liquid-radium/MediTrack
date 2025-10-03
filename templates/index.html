@@ -410,38 +410,31 @@ function loadVitals() {
 }
 
 
-async function loadSinglePatient() {
+function loadSinglePatient() {
   const id = document.getElementById("single_patient_id").value;
-  const container = document.getElementById("single_patient_info");
-  container.innerHTML = ""; // clear old content
-
-  if (!id) {
-    container.innerHTML = "<p style='color:red;'>Please enter a patient ID</p>";
-    return;
-  }
-
-  try {
-    const response = await fetch(`http://127.0.0.1:5000/patients/${id}`);
-    if (!response.ok) {
-      container.innerHTML = `<p style='color:red;'>Patient not found.</p>`;
-      return;
-    }
-
-    const patient = await response.json();
-
-    container.innerHTML = `
-      <table border="1" style="margin:auto; border-collapse: collapse; width:60%;">
-        <tr><th>ID</th><td>${patient.id}</td></tr>
-        <tr><th>Name</th><td>${patient.name}</td></tr>
-        <tr><th>Age</th><td>${patient.age}</td></tr>
-        <tr><th>Ward</th><td>${patient.ward}</td></tr>
-      </table>
-    `;
-  } catch (error) {
-    console.error("Error fetching patient:", error);
-    container.innerHTML = `<p style='color:red;'>Error fetching data</p>`;
-  }
+  fetch(`/patient/${id}`)
+    .then(res => res.json())
+    .then(data => {
+      const infoDiv = document.getElementById("single_patient_info");
+      if (data.error) {
+        infoDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+      } else {
+        infoDiv.innerHTML = `
+          <h4>Patient Details</h4>
+          <p><b>ID:</b> ${data.patient_id}</p>
+          <p><b>Name:</b> ${data.name}</p>
+          <p><b>Age:</b> ${data.age}</p>
+          <p><b>Ward:</b> ${data.ward}</p>
+        `;
+      }
+    })
+    .catch(err => {
+      document.getElementById("single_patient_info").innerHTML =
+        `<p style="color:red;">Error fetching data</p>`;
+      console.error(err);
+    });
 }
+
 
   </script>
 
