@@ -1,8 +1,0 @@
-flask
-psycopg2-binary
-gunicorn
-python-dotenv
-supabase
-qrcode[pil]
-flask_cors
-
