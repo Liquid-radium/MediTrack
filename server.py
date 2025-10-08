@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request, send_file, redirect
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 import io
 import qrcode
 from supabase import create_client
-from flask_cors import CORS
 
 # Load environment variables
 load_dotenv()
@@ -157,6 +157,7 @@ def enforce_https():
     if not request.is_secure and os.environ.get("FLASK_ENV") == "production":
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
+    
 
 
 # --- Run App ---
