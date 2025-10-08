@@ -54,7 +54,7 @@ def generate_qr(patient_id):
 # --- Get All Patients ---
 @app.route("/patients", methods=["GET"])
 def get_all_patients():
-   
+    try:
         response = supabase.table("patient").select("*").execute()
         if response.data:
             return jsonify(response.data)
