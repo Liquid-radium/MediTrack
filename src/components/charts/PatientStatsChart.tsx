@@ -17,22 +17,25 @@ export function PatientStatsChart() {
       
       // Count patients added on this day (inpatient = admitted)
       const inpatient = patients.filter(p => {
-        const createdDate = new Date(p.createdAt);
-        return createdDate.toDateString() === date.toDateString();
-      }).length;
+      if (typeof p.created_at !== 'string') return false;
+      const createdDate = new Date(p.created_at);
+      return createdDate.toDateString() === date.toDateString();
+    }).length;
+
       
       // Count patients discharged on this day (outpatient)
       const outpatient = patients.filter(p => {
-        if (!p.dischargedAt) return false;
-        const dischargedDate = new Date(p.dischargedAt);
+        if (!p.discharged_at) return false;
+        const dischargedDate = new Date(p.discharged_at);
         return dischargedDate.toDateString() === date.toDateString();
       }).length;
       
       // Count critical patients admitted on this day (emergency)
       const emergency = patients.filter(p => {
-        const createdDate = new Date(p.createdAt);
-        return createdDate.toDateString() === date.toDateString() && p.status === 'critical';
-      }).length;
+        if (typeof p.created_at !== 'string') return false;
+      const createdDate = new Date(p.created_at);
+      return createdDate.toDateString() === date.toDateString();
+    }).length;
       
       weekData.push({
         name: dayName,

@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { usePatients } from '../../contexts/PatientContext';
 import { QrCode, Download, Search } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 
 export function GenerateQRView() {
@@ -15,15 +15,17 @@ export function GenerateQRView() {
   const qrRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = () => {
-    const patient = getPatient(patientId.toUpperCase());
-    if (patient) {
-      setSelectedPatient(patient);
-      toast.success('Patient found! QR code generated.');
-    } else {
-      toast.error('Patient not found');
-      setSelectedPatient(null);
-    }
-  };
+  const patient = getPatient(Number(patientId)); // Convert patientId to number
+  if (patient) {
+    setSelectedPatient(patient);
+    toast.success('Patient found! QR code generated.');
+  } else {
+    toast.error('Patient not found');
+    setSelectedPatient(null);
+  }
+};
+
+
 
   const handleDownload = () => {
     if (!qrRef.current) return;

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { ScanLine, Upload, Camera, X } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 
 export function ScanQRView() {

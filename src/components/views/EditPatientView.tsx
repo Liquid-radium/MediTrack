@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { usePatients } from '../../contexts/PatientContext';
 import { UserCog, Search, Save } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function EditPatientView() {
   const { getPatient, updatePatient } = usePatients();
@@ -17,8 +17,8 @@ export function EditPatientView() {
     ward: ''
   });
 
-  const handleSearch = () => {
-    const patient = getPatient(searchId.toUpperCase());
+  const handleSearch = async () => {
+    const patient = await getPatient(Number(searchId));
     if (patient) {
       setCurrentPatient(patient);
       setFormData({
@@ -33,7 +33,7 @@ export function EditPatientView() {
     }
   };
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!currentPatient) {
@@ -46,7 +46,7 @@ export function EditPatientView() {
       return;
     }
 
-    updatePatient(currentPatient.id, {
+    await updatePatient(currentPatient.id, {
       name: formData.name,
       age: parseInt(formData.age),
       ward: formData.ward
@@ -55,7 +55,7 @@ export function EditPatientView() {
     toast.success('Patient details updated successfully!');
     
     // Refresh the current patient data
-    const updatedPatient = getPatient(currentPatient.id);
+    const updatedPatient = await getPatient(currentPatient.id);
     if (updatedPatient) {
       setCurrentPatient(updatedPatient);
     }

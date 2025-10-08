@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Label } from "./ui/label";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 export function CriticalPatientsSection() {
   const { patients, updatePatient } = usePatients();
@@ -29,7 +29,7 @@ export function CriticalPatientsSection() {
     patientId: string,
     newStatus: "critical" | "stable" | "recovering",
   ) => {
-    updatePatient(patientId, { status: newStatus });
+    updatePatient(Number(patientId), { status: newStatus });
     toast.success(`Patient status updated to ${newStatus}`);
   };
 
@@ -47,9 +47,12 @@ export function CriticalPatientsSection() {
   };
 
   const getVitalStatus = (
-    value: number,
+    value: number | undefined,
     normal: { min: number; max: number },
   ) => {
+    if (typeof value !== "number") {
+      return "text-muted-foreground";
+    }
     if (value < normal.min || value > normal.max) {
       return "text-alert-high";
     }
@@ -85,7 +88,7 @@ export function CriticalPatientsSection() {
         <div className="space-y-4">
           {criticalPatients.map((patient) => (
             <Card
-              key={patient.id}
+              key={patient.patient_id}
               className="p-4 border-l-4 border-l-alert-high bg-alert-high/5"
             >
               <div className="space-y-4">
@@ -106,7 +109,7 @@ export function CriticalPatientsSection() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {patient.age} years • {patient.ward} • ID:{" "}
-                      {patient.id}
+                      {patient.patient_id}
                     </p>
                   </div>
                 </div>
@@ -188,7 +191,7 @@ export function CriticalPatientsSection() {
                           value={patient.status}
                           onValueChange={(value) =>
                             handleStatusChange(
-                              patient.id,
+                              String(patient.patient_id),
                               value as
                                 | "critical"
                                 | "stable"
@@ -220,7 +223,9 @@ export function CriticalPatientsSection() {
                 <div className="text-xs text-muted-foreground pt-2 border-t">
                   <span>
                     Last updated:{" "}
-                    {patient.updatedAt.toLocaleString()}
+                    {patient.updated_at
+                      ? patient.updated_at.toLocaleString()
+                      : "N/A"}
                   </span>
                 </div>
               </div>

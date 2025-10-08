@@ -7,7 +7,7 @@ import { Button } from '../ui/button';
 import { usePatients } from '../../contexts/PatientContext';
 import { Search, Activity, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function ViewAllPatientsView() {
   const { patients, getPatient } = usePatients();
@@ -16,8 +16,8 @@ export function ViewAllPatientsView() {
   const [selectedPatientVitals, setSelectedPatientVitals] = useState<any>(null);
   const [selectedPatientDetails, setSelectedPatientDetails] = useState<any>(null);
 
-  const handleVitalsSearch = () => {
-    const patient = getPatient(vitalsSearchId.toUpperCase());
+  const handleVitalsSearch = async () => {
+    const patient = await getPatient(Number(vitalsSearchId));
     if (patient && patient.vitals) {
       setSelectedPatientVitals(patient);
       toast.success('Patient vitals retrieved!');
@@ -28,7 +28,7 @@ export function ViewAllPatientsView() {
   };
 
   const handleDetailsSearch = () => {
-    const patient = getPatient(detailsSearchId.toUpperCase());
+    const patient = getPatient(Number(detailsSearchId));
     if (patient) {
       setSelectedPatientDetails(patient);
       toast.success('Patient details retrieved!');
@@ -75,9 +75,9 @@ export function ViewAllPatientsView() {
                 </TableHeader>
                 <TableBody>
                   {patients.map((patient) => (
-                    <TableRow key={patient.id}>
+                    <TableRow key={patient.patient_id}>
                       <TableCell className="font-semibold text-healthcare-secondary">
-                        {patient.id}
+                        {patient.patient_id}
                       </TableCell>
                       <TableCell>{patient.name}</TableCell>
                       <TableCell>{patient.age}</TableCell>
@@ -94,7 +94,7 @@ export function ViewAllPatientsView() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(patient.updatedAt).toLocaleDateString()}
+                        {patient.updated_at ? new Date(patient.updated_at).toLocaleDateString() : 'N/A'}
                       </TableCell>
                     </TableRow>
                   ))}

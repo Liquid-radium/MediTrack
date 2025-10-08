@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { usePatients } from '../../contexts/PatientContext';
 import { UserPlus, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function AddPatientView() {
   const { addPatient } = usePatients();
@@ -16,7 +16,7 @@ export function AddPatientView() {
   });
   const [generatedId, setGeneratedId] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.age || !formData.ward) {
@@ -24,7 +24,7 @@ export function AddPatientView() {
       return;
     }
 
-    const newId = addPatient({
+    const newId = await addPatient({
       name: formData.name,
       age: parseInt(formData.age),
       ward: formData.ward,
@@ -38,9 +38,11 @@ export function AddPatientView() {
       }
     });
 
-    setGeneratedId(newId);
-    setFormData({ name: '', age: '', ward: '' });
-    toast.success(`Patient added successfully! ID: ${newId}`);
+    if (typeof newId === 'string') {
+      setGeneratedId(newId);
+      setFormData({ name: '', age: '', ward: '' });
+      toast.success(`Patient added successfully! ID: ${newId}`);
+    }
   };
 
   const handleReset = () => {

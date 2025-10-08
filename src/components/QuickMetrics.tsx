@@ -11,7 +11,7 @@ export function QuickMetrics() {
   const criticalPatients = patients.filter(p => p.status === 'critical').length;
   
   // Active patients are those not discharged
-  const activePatients = patients.filter(p => !p.dischargedAt).length;
+  const activePatients = patients.filter(p => !p.discharged_at).length;
   
   const metrics = [
     {
