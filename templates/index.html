@@ -107,7 +107,8 @@
 </head>
 <body>
 
-  <header>SmartBand Patient Monitor</header>
+<!-- Removed duplicate document wrapper; welcome block moved into main layout below -->
+
 
   <nav>
     <button onclick="showSection('scan')">Scan QR</button>
@@ -132,7 +133,11 @@
         <input type="text" id="generate_patient_id" placeholder="Patient ID" required /><br/>
         <button class="submit-btn" type="submit">Generate QR Code</button>
       </form>
-      <div id="qr_result" class="message"></div>
+  <div class="container">
+    <div class="welcome" style="text-align:left; margin-bottom: 20px;">
+        <h2>Welcome, {{ username }}!</h2>
+        <p>Here you can monitor patient vitals from your smartband system.</p>
+        <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
     <!-- Add Patient Section -->

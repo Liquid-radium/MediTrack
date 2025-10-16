@@ -1,17 +1,98 @@
-from flask import Flask, jsonify, request, render_template, send_file
+from flask import Flask, jsonify, request, render_template, send_file, session, redirect, url_for
 import os
 from dotenv import load_dotenv
 import io
 import qrcode
 from supabase import create_client
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
 
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+# Using Flask's built-in secure cookie session by default.
+# If you require server-side sessions, install Flask-Session in your environment:
+#   pip install Flask-Session
+# and restore the following lines:
+# from flask_session import Session
+# app.config["SESSION_TYPE"] = "filesystem"
+# Session(app)
+# generate_password_hash and check_password_hash are used directly
+
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_SERVICE_KEY")
 supabase = create_client(url, key)
+
+# --- Supabase setup ---
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_SERVICE_KEY")
+supabase = create_client(url, key)
+
+# ===============================
+#         AUTH ROUTES
+# ===============================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        data = request.form
+        username = data.get("username")
+        password = data.get("password")
+
+        # Fetch user
+        result = supabase.table("users").select("*").eq("username", username).execute()
+        if not result.data:
+            return render_template("login.html", error="User not found")
+        user = result.data[0]
+        if check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            return redirect(url_for("home"))
+        else:
+            return render_template("login.html", error="Invalid password")
+            return render_template("login.html", error="Invalid password")
+
+    return render_template("login.html")
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        data = request.form
+        username = data.get("username")
+        password = data.get("password")
+        email = data.get("email")
+
+        if not username or not password or not email:
+            return render_template("signup.html", error="Missing required fields")
+
+        hashed_pw = generate_password_hash(password)
+
+        # Check existing user
+        existing = supabase.table("users").select("*").eq("username", username).execute()
+        if existing.data:
+            return render_template("signup.html", error="Username already exists")
+
+        response = supabase.table("users").insert({
+            "username": username,
+            "password": hashed_pw,
+            "email": email
+        }).execute()
+
+        if response.data:
+            return redirect(url_for("login"))
+        else:
+            return render_template("signup.html", error="Signup failed")
+
+    return render_template("signup.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 
 # --- Routes ---
 
@@ -133,8 +214,6 @@ def get_vitals(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-from flask import request, redirect
-
 @app.before_request
 def enforce_https():
     if not request.is_secure and os.environ.get("FLASK_ENV") == "production":
