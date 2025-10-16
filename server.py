@@ -5,6 +5,8 @@ import io
 import qrcode
 from supabase import create_client
 from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
+from datetime import timedelta
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -19,14 +21,39 @@ app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 # app.config["SESSION_TYPE"] = "filesystem"
 # Session(app)
 # generate_password_hash and check_password_hash are used directly
+# Secure SECRET_KEY handling
+_env_key = os.getenv("SECRET_KEY")
 
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_SERVICE_KEY")
-supabase = create_client(url, key)
+if not _env_key or _env_key == "supersecretkey":
+    # In production we require an explicit SECRET_KEY
+    if os.environ.get("FLASK_ENV") == "production":
+        raise RuntimeError(
+            "SECRET_KEY must be set in environment for production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+        )
+    # For development only: use an ephemeral key (won't persist across restarts)
+    app.logger.warning("No SECRET_KEY set; using ephemeral key for development.")
+    app.secret_key = secrets.token_urlsafe(64)
+else:
+    app.secret_key = _env_key
 
+# Harden cookie/session settings
+app.config.update(
+    SESSION_COOKIE_SECURE=(os.environ.get("FLASK_ENV") == "production"),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+)
+
+# Optional: if you want server-side sessions, uncomment and configure Flask-Session:
+# from flask_session import Session
+# app.config["SESSION_TYPE"] = "filesystem"  # or "redis" in production
+# Session(app)
 # --- Supabase setup ---
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_SERVICE_KEY")
+if not url or not key:
+    raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment")
 supabase = create_client(url, key)
 
 # ===============================
@@ -47,13 +74,12 @@ def login():
         user = result.data[0]
         if check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
+        if check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
             session["username"] = user["username"]
             return redirect(url_for("home"))
         else:
             return render_template("login.html", error="Invalid password")
-            return render_template("login.html", error="Invalid password")
-
-    return render_template("login.html")
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -121,15 +147,19 @@ def admin():
     return render_template("admin.html")
 
 
-@app.route("/patient/<pid>", methods=["GET"])
-def get_patient(pid):
-    response = supabase.table("patient").select("*").eq("patient_id", pid).execute()
-    if response.data:
-        return jsonify(response.data[0])
-    return jsonify({"error": "Patient not found"}), 404
-
-
-@app.route("/add_patient", methods=["POST"])
+@app.route("/patient/<int:patient_id>", methods=["GET"])
+def get_patient(patient_id):
+    try:
+        response = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
+        if response.data:
+            return jsonify(response.data[0])
+        return jsonify({"error": "Patient not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+def add_patient():
+    data = request.json
+    name = data.get("name")
+@app.route("/patient", methods=["POST"])
 def add_patient():
     data = request.json
     name = data.get("name")
@@ -148,9 +178,6 @@ def add_patient():
     if response.data:
         return jsonify({"message": "Patient added successfully", "patient": response.data[0]}), 201
     return jsonify({"error": "Insert failed"}), 500
-
-
-@app.route("/edit_patient/<pid>", methods=["PUT"])
 def edit_patient(pid):
     data = request.json
     update_data = {}
@@ -220,16 +247,10 @@ def enforce_https():
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
     
-@app.route("/patient/<int:patient_id>", methods=["GET"])
-def get_patient_with_id(patient_id):
-    patient = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
-    if patient.data:
-        return jsonify(patient.data[0])
-    else:
-        return jsonify({"error": "Patient not found"}), 404
+# Route consolidated above to use int converter and unified error handling.
 
 
 # --- Run the app ---
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-    app.run(debug=True)
+    debug = (os.environ.get("FLASK_ENV") != "production")
+    app.run(debug=debug, host="0.0.0.0", port=5000)
