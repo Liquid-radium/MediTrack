@@ -155,49 +155,28 @@
 
   <!-- View All Patients Section -->
   <div id="view" class="section">
-  <h2>All Patients</h2>
-  <button class="submit-btn" onclick="loadPatients()">Refresh</button>
-  
-  <table id="patients_table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Ward</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Patients will be loaded here -->
-    </tbody>
-  </table>
+    <h2>All Patients</h2>
+    <button class="submit-btn" onclick="loadPatients()">Refresh</button>
 
-  <!-- Display Vitals Section -->
-  <h3>Display Vitals</h3>
-  <input type="text" id="vitals-patient-id" placeholder="Enter Patient ID">
-  <button onclick="loadVitals()">Show Vitals</button>
-
-  <div id="vitals-data" style="margin-top:20px;">
-    <table id="vitals-table" border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
+    <table id="patients_table">
       <thead>
         <tr>
-          <th>Patient ID</th>
-          <th>Heart Rate (bpm)</th>
-          <th>SpO₂ (%)</th>
-          <th>Timestamp</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Ward</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Vitals rows will be inserted here dynamically -->
+        <!-- Patients will be loaded here -->
       </tbody>
     </table>
-  </div>
 
-  <!-- View Single Patient Section -->
-  <h3 style="margin-top:30px;">View Single Patient</h3>
-  <input type="number" id="single_patient_id" placeholder="Enter Patient ID" />
-  <button class="submit-btn" onclick="loadSinglePatient()">Get Patient Info</button>
-  <div id="single_patient_info" style="margin-top:20px;"></div>
+    <!-- Combined Patient Details + Vitals -->
+    <h3 style="margin-top:30px;">View Patient by ID</h3>
+    <input type="number" id="view_patient_id" placeholder="Enter Patient ID" />
+    <button class="submit-btn" onclick="showDetailsAndVitals()">Show Details & Vitals</button>
+    <div id="patient_details_vitals" style="margin-top:20px;"></div>
 
   </div> <!-- closes #view -->
 
@@ -219,6 +198,9 @@
     function showSection(id) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      if (id === 'view') {
+        loadPatients();
+      }
     }
 
     // QR Scanner
@@ -272,14 +254,26 @@
       const ward = document.getElementById("add_ward").value;
       const msgDiv = document.getElementById("add_message");
 
+      const ageNum = parseInt(age, 10);
+      const wardNum = parseInt(ward, 10);
+
       fetch("/add_patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, age, ward })
+        body: JSON.stringify({ name, age: ageNum, ward: wardNum })
       })
       .then(res => res.json())
       .then(data => {
-        msgDiv.innerHTML = data.error ? `<p style="color:red;">${data.error}</p>` : `<p style="color:green;">${data.message}</p>`;
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+          return;
+        }
+        const pid = data.patient && data.patient.patient_id;
+        msgDiv.innerHTML = pid
+          ? `<p style="color:green;">${data.message}. Patient ID: ${pid}</p>`
+          : `<p style="color:green;">${data.message}</p>`;
+        // Refresh the patients table so the new entry appears in View All
+        loadPatients();
       });
     }
 
@@ -304,6 +298,10 @@
       .then(res => res.json())
       .then(data => {
         msgDiv.innerHTML = data.error ? `<p style="color:red;">${data.error}</p>` : `<p style="color:green;">${data.message}</p>`;
+        if (!data.error) {
+          // Ensure the View All table reflects updated details
+          loadPatients();
+        }
       });
     }
 
@@ -332,7 +330,7 @@
     }
 
     // Generate QR
-function generateQR(event) {
+    function generateQR(event) {
   event.preventDefault();
   const patientId = document.getElementById("generate_patient_id").value;
   const resultDiv = document.getElementById("qr_result");
@@ -362,9 +360,9 @@ function generateQR(event) {
   .catch(err => {
     resultDiv.innerHTML = `<p style="color:red;">${err.message}</p>`;
   });
-}
+    }
 
-function dischargePatient() {
+    function dischargePatient() {
   const id = document.getElementById("edit_id").value;
   const msgDiv = document.getElementById("edit_message");
 
@@ -382,66 +380,48 @@ function dischargePatient() {
       ? `<p style="color:red;">${data.error}</p>` 
       : `<p style="color:green;">${data.message}</p>`;
   });
-}
+    }
 
-function loadVitals() {
-  const patientId = document.getElementById("vitals-patient-id").value;
-  if (!patientId) {
-    alert("Please enter a patient ID");
-    return;
-  }
-
-  function fetchVitals() {
-    fetch(`/get_vitals/${patientId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          document.getElementById("vitals-data").innerHTML = `<p style="color:red">${data.error}</p>`;
-        } else {
-          document.getElementById("vitals-data").innerHTML = `
-            <h4>Vitals for Patient ${patientId}</h4>
-            <p><b>Heart Rate:</b> ${data.heart_rate} bpm</p>
-            <p><b>SpO₂:</b> ${data.spo2} %</p>
-            <p><b>Temperature:</b> ${data.temperature} °C</p>
-            <p><i>Last updated at: ${new Date(data.timestamp).toLocaleString()}</i></p>
-          `;
-        }
-      })
-      .catch(err => console.error(err));
-  }
-
-  // fetch immediately
-  fetchVitals();
-
-  // auto-refresh every 5 seconds
-  //setInterval(fetchVitals, 5000);
-}
-
-
-function loadSinglePatient() {
-  const id = document.getElementById("single_patient_id").value;
-  fetch(`/patient/${id}`)
-    .then(res => res.json())
-    .then(data => {
-      const infoDiv = document.getElementById("single_patient_info");
-      if (data.error) {
-        infoDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
-      } else {
-        infoDiv.innerHTML = `
-          <h4>Patient Details</h4>
-          <p><b>ID:</b> ${data.patient_id}</p>
-          <p><b>Name:</b> ${data.name}</p>
-          <p><b>Age:</b> ${data.age}</p>
-          <p><b>Ward:</b> ${data.ward}</p>
-        `;
+    function showDetailsAndVitals() {
+      const id = document.getElementById("view_patient_id").value;
+      const container = document.getElementById("patient_details_vitals");
+      if (!id) {
+        container.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        return;
       }
-    })
-    .catch(err => {
-      document.getElementById("single_patient_info").innerHTML =
-        `<p style="color:red;">Error fetching data</p>`;
-      console.error(err);
-    });
-}
+
+      Promise.all([
+        fetch(`/patient/${id}`).then(res => res.json()),
+        fetch(`/get_vitals/${id}`).then(res => res.json()).catch(() => ({ error: "Failed to fetch vitals" }))
+      ])
+      .then(([patient, vitals]) => {
+        if (patient.error) {
+          container.innerHTML = `<p style=\"color:red;\">${patient.error}</p>`;
+          return;
+        }
+        const vitalsHtml = vitals && !vitals.error
+          ? `
+            <p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
+            <p><b>SpO₂:</b> ${vitals.spo2} %</p>
+            ${vitals.temperature !== undefined ? `<p><b>Temperature:</b> ${vitals.temperature} °C</p>` : ""}
+            <p><i>Last updated: ${new Date(vitals.timestamp).toLocaleString()}</i></p>
+          `
+          : `<p style=\"color:red;\">${(vitals && vitals.error) || "No vitals found for this patient"}</p>`;
+
+        container.innerHTML = `
+          <h4>Patient Details</h4>
+          <p><b>ID:</b> ${patient.patient_id}</p>
+          <p><b>Name:</b> ${patient.name}</p>
+          <p><b>Age:</b> ${patient.age}</p>
+          <p><b>Ward:</b> ${patient.ward}</p>
+          <h4 style=\"margin-top:16px;\">Latest Vitals</h4>
+          ${vitalsHtml}
+        `;
+      })
+      .catch(() => {
+        container.innerHTML = `<p style=\"color:red;\">Error fetching data.</p>`;
+      });
+    }
 
 
   </script>
