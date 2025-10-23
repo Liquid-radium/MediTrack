@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Patient</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <h1>Add Patient</h1>
+    <a href="{{ url_for('home') }}">Back to Dashboard</a>
+    <div class="form-container">
+      <label>Name</label>
+      <input id="name" type="text" />
+      <label>Age</label>
+      <input id="age" type="number" />
+      <label>Ward</label>
+      <input id="ward" type="number" />
+      <button onclick="submitPatient()">Submit</button>
+      <div id="msg" style="margin-top:10px;"></div>
+    </div>
+  </main>
+  <script>
+    function submitPatient() {
+      const payload = {
+        name: document.getElementById('name').value,
+        age: parseInt(document.getElementById('age').value, 10),
+        ward: parseInt(document.getElementById('ward').value, 10),
+      };
+      fetch('/add_patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(r => r.json()).then(data => {
+        const msg = document.getElementById('msg');
+        if (data.error) {
+          msg.innerHTML = `<span style='color:red'>${data.error}</span>`;
+        } else {
+          msg.innerHTML = `<span style='color:green'>${data.message}</span>`;
+        }
+      })
+    }
+  </script>
+</body>
+</html>
