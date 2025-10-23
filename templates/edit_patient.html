@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Patient</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <h1>Edit Patient</h1>
+    <a href="{{ url_for('home') }}">Back to Dashboard</a>
+    <div class="form-container">
+      <label>Patient ID</label>
+      <input id="id" type="number" />
+      <label>New Name</label>
+      <input id="name" type="text" />
+      <label>New Age</label>
+      <input id="age" type="number" />
+      <label>New Ward</label>
+      <input id="ward" type="number" />
+      <button onclick="updatePatient()">Update</button>
+      <button style="background:#c1121f" onclick="deletePatient()">Delete</button>
+      <div id="msg" style="margin-top:10px;"></div>
+    </div>
+  </main>
+  <script>
+    function updatePatient() {
+      const id = document.getElementById('id').value;
+      const payload = {};
+      const name = document.getElementById('name').value;
+      const age = document.getElementById('age').value;
+      const ward = document.getElementById('ward').value;
+      if (name) payload.name = name;
+      if (age) payload.age = parseInt(age, 10);
+      if (ward) payload.ward = parseInt(ward, 10);
+
+      fetch(`/edit_patient/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(r => r.json()).then(data => {
+        const msg = document.getElementById('msg');
+        msg.innerHTML = data.error ? `<span style='color:red'>${data.error}</span>` : `<span style='color:green'>${data.message}</span>`;
+      })
+    }
+
+    function deletePatient() {
+      const id = document.getElementById('id').value;
+      fetch(`/delete_patient/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+          const msg = document.getElementById('msg');
+          msg.innerHTML = data.error ? `<span style='color:red'>${data.error}</span>` : `<span style='color:green'>${data.message}</span>`;
+        })
+    }
+  </script>
+</body>
+</html>
