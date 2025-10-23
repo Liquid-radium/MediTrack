@@ -107,7 +107,9 @@
 </head>
 <body>
 
-  <header>Smartband Patient Monitor</header>
+<!-- Removed duplicate document wrapper; welcome block moved into main layout below -->
+
+
   <nav>
     <button onclick="showSection('scan')">Scan QR</button>
     <button onclick="showSection('generate')">Generate QR</button>
@@ -117,16 +119,6 @@
   </nav>
 
   <div class="container">
-    <div class="welcome" style="text-align:left; margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h2 style="margin:0;">Welcome, {{ username }}!</h2>
-          <p style="margin:4px 0 0 0;">Monitor patient vitals from your smartband system.</p>
-        </div>
-        <div>
-          <a href="{{ url_for('admin') }}" style="margin-right:12px;">Admin QR</a>
-          <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-    </div>
     <!-- Scan QR Section -->
     <div id="scan" class="section active">
       <h2>Scan Patient QR</h2>
@@ -141,7 +133,12 @@
         <input type="text" id="generate_patient_id" placeholder="Patient ID" required /><br/>
         <button class="submit-btn" type="submit">Generate QR Code</button>
       </form>
-      <div id="qr_result" style="margin-top: 16px;"></div>
+  <div class="container">
+    <div class="welcome" style="text-align:left; margin-bottom: 20px;">
+        <h2>Welcome, {{ username }}!</h2>
+        <p>Here you can monitor patient vitals from your smartband system.</p>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
 
     <!-- Add Patient Section -->
     <div id="add" class="section">
@@ -154,7 +151,7 @@
     </div>
 
   <!-- View All Patients Section -->
-  <div id="view" class="section">
+<div id="view" class="section">
   <h2>All Patients</h2>
   <button class="submit-btn" onclick="loadPatients()">Refresh</button>
   
@@ -199,7 +196,7 @@
   <button class="submit-btn" onclick="loadSinglePatient()">Get Patient Info</button>
   <div id="single_patient_info" style="margin-top:20px;"></div>
 
-  </div> <!-- closes #view -->
+</div> <!-- closes #view -->
 
 
 
