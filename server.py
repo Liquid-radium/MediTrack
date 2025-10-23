@@ -3,7 +3,11 @@ import os
 from dotenv import load_dotenv
 import io
 import qrcode
-from supabase import create_client
+try:
+    # Prefer lazy/safe import to avoid startup failures if package missing
+    from supabase import create_client as _create_client
+except Exception:  # pragma: no cover - environment-specific
+    _create_client = None
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 from datetime import timedelta
@@ -28,12 +32,29 @@ app.config.update(
 )
 
 
-# --- Supabase setup ---
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_SERVICE_KEY")
-if not url or not key:
-    raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment")
-supabase = create_client(url, key)
+# --- Supabase setup (lazy) ---
+# Lazily initialize the Supabase client so that pages like login/signup can
+# render even when environment variables are missing in development.
+_supabase_client = None
+
+def get_supabase():
+    """Return a cached Supabase client or None if not configured."""
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        return None
+    try:
+        if _create_client is None:
+            return None
+        _supabase_client = _create_client(url, key)
+        return _supabase_client
+    except Exception:
+        # If initialization fails, leave client as None and let routes handle it
+        return None
 
 
 
@@ -67,16 +88,20 @@ def signup():
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
 
+    client = get_supabase()
+    if client is None:
+        return render_template("signup.html", error="Server not configured: missing Supabase credentials."), 500
+
     if not username or not email or not password:
         return render_template("signup.html", error="All fields are required."), 400
 
     # Ensure username is unique
-    existing = supabase.table("users").select("id").eq("username", username).execute()
+    existing = client.table("users").select("id").eq("username", username).execute()
     if existing.data:
         return render_template("signup.html", error="Username already exists."), 400
 
     password_hash = generate_password_hash(password)
-    created = supabase.table("users").insert({
+    created = client.table("users").insert({
         "username": username,
         "email": email,
         "password": password_hash,
@@ -100,10 +125,14 @@ def login():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
+    client = get_supabase()
+    if client is None:
+        return render_template("login.html", error="Server not configured: missing Supabase credentials."), 500
+
     if not username or not password:
         return render_template("login.html", error="Username and password are required."), 400
 
-    result = supabase.table("users").select("id, username, password").eq("username", username).limit(1).execute()
+    result = client.table("users").select("id, username, password").eq("username", username).limit(1).execute()
     if not result.data:
         return render_template("login.html", error="Invalid username or password."), 401
 
@@ -157,7 +186,10 @@ def admin():
 @login_required
 def get_patient(patient_id):
     try:
-        response = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        response = client.table("patient").select("*").eq("patient_id", patient_id).execute()
         if response.data:
             return jsonify(response.data[0])
         return jsonify({"error": "Patient not found"}), 404
@@ -179,7 +211,10 @@ def add_patient():
         return jsonify({"error": "name, age, and ward are required"}), 400
 
     try:
-        response = supabase.table("patient").insert({
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        response = client.table("patient").insert({
             "name": name,
             "age": age,
             "ward": ward,
@@ -203,7 +238,10 @@ def qr_page():
 @app.route("/patients", methods=["GET"])
 @login_required
 def get_all_patients():
-    response = supabase.table("patient").select("*").execute()
+    client = get_supabase()
+    if client is None:
+        return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+    response = client.table("patient").select("*").execute()
     if response.data:
         return jsonify(response.data)
     return jsonify({"error": "No patients found"}), 404
@@ -212,7 +250,10 @@ def get_all_patients():
 @login_required
 def delete_patient(patient_id):
     try:
-        response = supabase.table("patient").delete().eq("patient_id", patient_id).execute()
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        response = client.table("patient").delete().eq("patient_id", patient_id).execute()
         if response.data:
             return jsonify({"message": f"Patient {patient_id} discharged successfully!"})
         else:
@@ -228,7 +269,10 @@ def edit_patient(patient_id):
     if not update_data:
         return jsonify({"error": "No update fields provided"}), 400
     try:
-        response = supabase.table("patient").update(update_data).eq("patient_id", patient_id).execute()
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        response = client.table("patient").update(update_data).eq("patient_id", patient_id).execute()
         if response.data:
             return jsonify({"message": "Patient updated successfully", "patient": response.data[0]})
         else:
@@ -241,7 +285,10 @@ def edit_patient(patient_id):
 def get_vitals(patient_id):
     try:
         # Fetch latest vitals for this patient
-        response = supabase.table("vitals").select("*").eq("patient_id", patient_id).order("timestamp", desc=True).limit(1).execute()
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        response = client.table("vitals").select("*").eq("patient_id", patient_id).order("timestamp", desc=True).limit(1).execute()
 
         if response.data:
             return jsonify(response.data[0])   # send the latest record
