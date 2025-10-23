@@ -7,25 +7,10 @@ from supabase import create_client
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 from datetime import timedelta
-from functools import wraps
 
 load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
-
-# --- App configuration & sessions ---
-secret_key = os.getenv("SECRET_KEY")
-if not secret_key:
-    # Ephemeral fallback for development. In production, require SECRET_KEY.
-    secret_key = secrets.token_hex(32)
-app.secret_key = secret_key
-
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=(os.environ.get("FLASK_ENV", "development").lower() == "production"),
-    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
-)
 
 
 # --- Supabase setup ---
@@ -38,102 +23,14 @@ supabase = create_client(url, key)
 
 
 
-# --- Helpers ---
-
-def login_required(view_func):
-    @wraps(view_func)
-    def wrapped(*args, **kwargs):
-        if "user_id" not in session:
-            wants_json = (
-                (request.accept_mimetypes.best or "").lower() == "application/json"
-                or request.is_json
-                or request.path.endswith(".json")
-            )
-            if wants_json:
-                return jsonify({"error": "Authentication required"}), 401
-            return redirect(url_for("login", next=request.url))
-        return view_func(*args, **kwargs)
-    return wrapped
-
-
-# --- Auth Routes ---
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "GET":
-        return render_template("signup.html")
-
-    username = request.form.get("username", "").strip()
-    email = request.form.get("email", "").strip()
-    password = request.form.get("password", "")
-
-    if not username or not email or not password:
-        return render_template("signup.html", error="All fields are required."), 400
-
-    # Ensure username is unique
-    existing = supabase.table("users").select("id").eq("username", username).execute()
-    if existing.data:
-        return render_template("signup.html", error="Username already exists."), 400
-
-    password_hash = generate_password_hash(password)
-    created = supabase.table("users").insert({
-        "username": username,
-        "email": email,
-        "password": password_hash,
-    }).execute()
-
-    if not created.data:
-        return render_template("signup.html", error="Failed to create user. Try again."), 500
-
-    user_row = created.data[0]
-    session.permanent = True
-    session["user_id"] = user_row.get("id")
-    session["username"] = username
-    return redirect(url_for("home"))
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "GET":
-        return render_template("login.html")
-
-    username = request.form.get("username", "").strip()
-    password = request.form.get("password", "")
-
-    if not username or not password:
-        return render_template("login.html", error="Username and password are required."), 400
-
-    result = supabase.table("users").select("id, username, password").eq("username", username).limit(1).execute()
-    if not result.data:
-        return render_template("login.html", error="Invalid username or password."), 401
-
-    user_row = result.data[0]
-    if not check_password_hash(user_row.get("password", ""), password):
-        return render_template("login.html", error="Invalid username or password."), 401
-
-    session.permanent = True
-    session["user_id"] = user_row.get("id")
-    session["username"] = user_row.get("username")
-    next_url = request.args.get("next")
-    return redirect(next_url or url_for("home"))
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-
 # --- Routes ---
 
 @app.route("/")
-@login_required
 def home():
-    return render_template("index.html", username=session.get("username"))
+    return render_template("index.html")
 
 
 @app.route("/admin", methods=["GET", "POST"])
-@login_required
 def admin():
     qr_image = None
     if request.method == "POST":
@@ -154,7 +51,6 @@ def admin():
 
 
 @app.route("/patient/<int:patient_id>", methods=["GET"])
-@login_required
 def get_patient(patient_id):
     try:
         response = supabase.table("patient").select("*").eq("patient_id", patient_id).execute()
@@ -164,44 +60,36 @@ def get_patient(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Insert failed"}), 500
-@app.route("/add_patient", methods=["POST"])
-@login_required
+@app.route("/patient", methods=["POST"])
 def add_patient():
     """
     Adds a new patient to the database using data from the POST request.
     """
-    data = request.get_json(silent=True) or {}
-    name = (data.get("name") or "").strip()
+    data = request.json
+    name = data.get("name")
     age = data.get("age")
     ward = data.get("ward")
 
-    if not name or age is None or ward is None:
-        return jsonify({"error": "name, age, and ward are required"}), 400
+    response = supabase.table("patient").insert({
+        "name": name,
+        "age": age,
+        "ward": ward
+    }).execute()
 
-    try:
-        response = supabase.table("patient").insert({
-            "name": name,
-            "age": age,
-            "ward": ward,
-        }).execute()
-        if response.data:
-            return jsonify({"message": "Patient added successfully", "patient": response.data[0]}), 201
-        return jsonify({"error": "Insert failed"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if response.data:
+        return jsonify({"message": "Patient added successfully", "patient": response.data[0]}), 201
+    return jsonify({"error": "Insert failed"}), 500
+    return render_template("add_patient.html")
 
 @app.route("/edit_patient_form")
-@login_required
 def edit_patient_form():
     return render_template("edit_patient.html")
 
 @app.route("/qr_page")
-@login_required
 def qr_page():
     return render_template("qr_page.html")
 
 @app.route("/patients", methods=["GET"])
-@login_required
 def get_all_patients():
     response = supabase.table("patient").select("*").execute()
     if response.data:
@@ -209,7 +97,6 @@ def get_all_patients():
     return jsonify({"error": "No patients found"}), 404
 
 @app.route("/delete_patient/<int:patient_id>", methods=["DELETE"])
-@login_required
 def delete_patient(patient_id):
     try:
         response = supabase.table("patient").delete().eq("patient_id", patient_id).execute()
@@ -220,24 +107,7 @@ def delete_patient(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-@app.route("/edit_patient/<int:patient_id>", methods=["PUT"])
-@login_required
-def edit_patient(patient_id):
-    update_data = request.get_json(silent=True) or {}
-    if not update_data:
-        return jsonify({"error": "No update fields provided"}), 400
-    try:
-        response = supabase.table("patient").update(update_data).eq("patient_id", patient_id).execute()
-        if response.data:
-            return jsonify({"message": "Patient updated successfully", "patient": response.data[0]})
-        else:
-            return jsonify({"error": "Patient not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route("/get_vitals/<int:patient_id>", methods=["GET"])
-@login_required
 def get_vitals(patient_id):
     try:
         # Fetch latest vitals for this patient
@@ -249,11 +119,6 @@ def get_vitals(patient_id):
             return jsonify({"error": "No vitals found for this patient"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-@app.route("/patient/<int:patient_id>/vitals", methods=["GET"])
-@login_required
-def get_patient_vitals(patient_id):
-    return get_vitals(patient_id)
     
 @app.before_request
 def enforce_https():
