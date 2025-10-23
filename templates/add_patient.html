@@ -37,7 +37,10 @@
         if (data.error) {
           msg.innerHTML = `<span style='color:red'>${data.error}</span>`;
         } else {
-          msg.innerHTML = `<span style='color:green'>${data.message}</span>`;
+          const pid = data.patient && data.patient.patient_id;
+          msg.innerHTML = pid
+            ? `<span style='color:green'>${data.message}. Patient ID: ${pid}</span>`
+            : `<span style='color:green'>${data.message}</span>`;
         }
       })
     }
