@@ -195,7 +195,7 @@ def get_patient(patient_id):
         return jsonify({"error": "Patient not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    return jsonify({"error": "Insert failed"}), 500
+
 @app.route("/add_patient", methods=["POST"])
 @login_required
 def add_patient():
