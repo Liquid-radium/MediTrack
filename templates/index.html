@@ -41,6 +41,27 @@
     nav button:hover {
       background-color: #0056b3;
     }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      border-radius: 5px;
+    }
+    .dropdown-content a:hover {
+      background-color: #007BFF;
+      color: white;
+    }
     .container {
       max-width: 800px;
       margin: 20px auto;
@@ -121,13 +142,25 @@
 
   <header>Smartband Patient Monitor</header>
   <nav>
-    <button onclick="showSection('scan')">Scan QR</button>
-    <button onclick="showSection('generate')">Generate QR</button>
-    <button onclick="showSection('add')">Add Patient</button>
-    <button onclick="showSection('edit')">Edit Patient</button>
-    <button onclick="showSection('edit_vitals')">Edit Vitals</button>
-    <button onclick="showSection('vitals_history')">Vitals History</button>
-    <button onclick="showSection('view')">View All Patients</button>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <button onclick="showSection('scan')">Scan QR</button>
+      <button onclick="showSection('generate')">Generate QR</button>
+      <div style="position: relative; display: inline-block;">
+        <button onclick="toggleDropdown('patientMenu')">Patient Management ▼</button>
+        <div id="patientMenu" class="dropdown-content" style="display: none;">
+          <a href="#" onclick="showSection('add'); return false;">Add Patient</a>
+          <a href="#" onclick="showSection('edit'); return false;">Edit Patient</a>
+          <a href="#" onclick="showSection('view'); return false;">View All Patients</a>
+        </div>
+      </div>
+      <div style="position: relative; display: inline-block;">
+        <button onclick="toggleDropdown('vitalsMenu')">Vitals ▼</button>
+        <div id="vitalsMenu" class="dropdown-content" style="display: none;">
+          <a href="#" onclick="showSection('edit_vitals'); return false;">Edit Vitals</a>
+          <a href="#" onclick="showSection('vitals_history'); return false;">Vitals History</a>
+        </div>
+      </div>
+    </div>
   </nav>
 
   <div class="container">
@@ -221,9 +254,11 @@
         <input type="number" id="vitals_heart_rate" placeholder="Heart Rate" min="0" max="300" /><br/>
         <label>SpO₂ (%)</label>
         <input type="number" id="vitals_spo2" placeholder="SpO₂" min="0" max="100" /><br/>
-        <label>Temperature (°C)</label>
-        <input type="number" id="vitals_temperature" placeholder="Temperature" min="30" max="45" step="0.1" /><br/>
         <button class="submit-btn" onclick="updateVitals()">Update Vitals</button>
+        <label style="margin-top: 15px;">
+          <input type="checkbox" id="auto_refresh_vitals" onchange="toggleAutoRefresh()" />
+          Auto-refresh every 5 seconds
+        </label>
         <div id="vitals_message" class="message"></div>
       </div>
     </div>
@@ -242,11 +277,102 @@
   </div>
 
   <script>
+    // Helper function to format timestamp without year
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${month}/${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // Auto-refresh variables
+    let autoRefreshInterval = null;
+    let currentVitalsPatientId = null;
+
     function showSection(id) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      
+      // Close all dropdowns when switching sections
+      document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+        dropdown.style.display = 'none';
+      });
+      
       if (id === 'view') {
         loadPatients();
+      }
+      // Stop auto-refresh when switching sections
+      if (id !== 'edit_vitals') {
+        toggleAutoRefresh(false);
+      }
+    }
+
+    // Toggle dropdown menus
+    function toggleDropdown(menuId) {
+      const menu = document.getElementById(menuId);
+      if (menu) {
+        // Close all other dropdowns
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+          if (dropdown.id !== menuId) {
+            dropdown.style.display = 'none';
+          }
+        });
+        // Toggle current dropdown
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      }
+    }
+
+    // Close dropdowns when clicking outside
+    window.onclick = function(event) {
+      if (!event.target.matches('button')) {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+          dropdown.style.display = 'none';
+        });
+      }
+    }
+
+    // Toggle auto-refresh for vitals
+    function toggleAutoRefresh(enable) {
+      const checkbox = document.getElementById("auto_refresh_vitals");
+      if (checkbox) {
+        if (enable === undefined) {
+          enable = checkbox.checked;
+        } else {
+          checkbox.checked = enable;
+        }
+      }
+
+      // Clear existing interval
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+
+      if (enable) {
+        const id = document.getElementById("vitals_patient_id").value;
+        if (!id) {
+          alert("Please enter a Patient ID first.");
+          if (checkbox) checkbox.checked = false;
+          return;
+        }
+        currentVitalsPatientId = id;
+        
+        // Refresh immediately, then every 5 seconds
+        updateVitals(true); // Pass true to indicate auto-refresh (don't show success message)
+        autoRefreshInterval = setInterval(() => {
+          const currentId = document.getElementById("vitals_patient_id").value;
+          if (currentId && currentId === currentVitalsPatientId) {
+            updateVitals(true); // Auto-refresh mode
+          } else {
+            // Patient ID changed, stop auto-refresh
+            toggleAutoRefresh(false);
+          }
+        }, 5000);
+      } else {
+        currentVitalsPatientId = null;
       }
     }
 
@@ -279,7 +405,7 @@
                   vitalsDiv.innerHTML = `
                     <p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
                     <p><b>SpO₂:</b> ${vitals.spo2}%</p>
-                    <p><i>Last updated: ${new Date(vitals.timestamp).toLocaleString()}</i></p>
+                    <p><i>Last updated: ${formatTimestamp(vitals.timestamp)}</i></p>
                   `;
                 }
               });
@@ -455,7 +581,6 @@
           ? `
             <p><b>Heart Rate:</b> ${vitals.heart_rate} bpm</p>
             <p><b>SpO₂:</b> ${vitals.spo2} %</p>
-            ${vitals.temperature !== undefined ? `<p><b>Temperature:</b> ${vitals.temperature} °C</p>` : ""}
             <p><i>Last updated: ${new Date(vitals.timestamp).toLocaleString()}</i></p>
           `
           : `<p style=\"color:red;\">${(vitals && vitals.error) || "No vitals found for this patient"}</p>`;
@@ -498,13 +623,11 @@
             // Show form even if no vitals exist (to create new ones)
             document.getElementById("vitals_heart_rate").value = "";
             document.getElementById("vitals_spo2").value = "";
-            document.getElementById("vitals_temperature").value = "";
             formDiv.style.display = "block";
           } else {
             statusDiv.innerHTML = `<p style="color:green;">Current vitals loaded. Update the fields below.</p>`;
             document.getElementById("vitals_heart_rate").value = data.heart_rate || "";
             document.getElementById("vitals_spo2").value = data.spo2 || "";
-            document.getElementById("vitals_temperature").value = data.temperature || "";
             formDiv.style.display = "block";
           }
         })
@@ -515,15 +638,16 @@
     }
 
     // Update vitals
-    function updateVitals() {
+    function updateVitals(isAutoRefresh = false) {
       const id = document.getElementById("vitals_patient_id").value;
       const heartRate = document.getElementById("vitals_heart_rate").value;
       const spo2 = document.getElementById("vitals_spo2").value;
-      const temperature = document.getElementById("vitals_temperature").value;
       const msgDiv = document.getElementById("vitals_message");
 
       if (!id) {
-        msgDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        if (!isAutoRefresh) {
+          msgDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        }
         return;
       }
 
@@ -532,7 +656,9 @@
       if (heartRate) {
         const hr = parseInt(heartRate, 10);
         if (isNaN(hr) || hr < 0 || hr > 300) {
-          msgDiv.innerHTML = `<p style="color:red;">Heart rate must be between 0 and 300 bpm.</p>`;
+          if (!isAutoRefresh) {
+            msgDiv.innerHTML = `<p style="color:red;">Heart rate must be between 0 and 300 bpm.</p>`;
+          }
           return;
         }
         updateData.heart_rate = hr;
@@ -540,22 +666,18 @@
       if (spo2) {
         const sp = parseInt(spo2, 10);
         if (isNaN(sp) || sp < 0 || sp > 100) {
-          msgDiv.innerHTML = `<p style="color:red;">SpO₂ must be between 0 and 100%.</p>`;
+          if (!isAutoRefresh) {
+            msgDiv.innerHTML = `<p style="color:red;">SpO₂ must be between 0 and 100%.</p>`;
+          }
           return;
         }
         updateData.spo2 = sp;
       }
-      if (temperature) {
-        const temp = parseFloat(temperature);
-        if (isNaN(temp) || temp < 30 || temp > 45) {
-          msgDiv.innerHTML = `<p style="color:red;">Temperature must be between 30 and 45 °C.</p>`;
-          return;
-        }
-        updateData.temperature = temp;
-      }
 
       if (Object.keys(updateData).length === 0) {
-        msgDiv.innerHTML = `<p style="color:red;">Please enter at least one vital sign to update.</p>`;
+        if (!isAutoRefresh) {
+          msgDiv.innerHTML = `<p style="color:red;">Please enter at least one vital sign to update.</p>`;
+        }
         return;
       }
 
@@ -567,15 +689,27 @@
       .then(res => res.json())
       .then(data => {
         if (data.error) {
-          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+          if (!isAutoRefresh) {
+            msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+          }
         } else {
-          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
-          // Reload the vitals to show updated values
-          setTimeout(() => loadVitalsForEdit(), 1000);
+          if (!isAutoRefresh) {
+            msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+          }
+          // Reload the vitals to show updated values (silently during auto-refresh)
+          setTimeout(() => {
+            loadVitalsForEdit();
+            // If auto-refresh is active, reload the graph too
+            if (isAutoRefresh && document.getElementById("history_patient_id").value === id) {
+              loadVitalsHistory();
+            }
+          }, 500);
         }
       })
       .catch(err => {
-        msgDiv.innerHTML = `<p style="color:red;">Error updating vitals: ${err.message}</p>`;
+        if (!isAutoRefresh) {
+          msgDiv.innerHTML = `<p style="color:red;">Error updating vitals: ${err.message}</p>`;
+        }
       });
     }
 
@@ -623,12 +757,17 @@
           // Prepare data for chart
           const labels = data.map(record => {
             const date = new Date(record.timestamp);
-            return date.toLocaleString();
+            // Format: MM/DD HH:MM:SS (no year)
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${month}/${day} ${hours}:${minutes}:${seconds}`;
           });
 
           const heartRateData = data.map(record => record.heart_rate || null);
           const spo2Data = data.map(record => record.spo2 || null);
-          const temperatureData = data.map(record => record.temperature || null);
 
           // Create chart with dual y-axes
           const ctx = chartCanvas.getContext('2d');
@@ -652,15 +791,6 @@
                   borderColor: 'rgb(54, 162, 235)',
                   backgroundColor: 'rgba(54, 162, 235, 0.2)',
                   yAxisID: 'y',
-                  tension: 0.1,
-                  fill: false
-                },
-                {
-                  label: 'Temperature (°C)',
-                  data: temperatureData,
-                  borderColor: 'rgb(75, 192, 192)',
-                  backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                  yAxisID: 'y1',
                   tension: 0.1,
                   fill: false
                 }
@@ -691,9 +821,7 @@
                       }
                       if (context.parsed.y !== null) {
                         label += context.parsed.y;
-                        if (context.dataset.label.includes('Temperature')) {
-                          label += ' °C';
-                        } else if (context.dataset.label.includes('SpO₂')) {
+                        if (context.dataset.label.includes('SpO₂')) {
                           label += ' %';
                         } else if (context.dataset.label.includes('Heart Rate')) {
                           label += ' bpm';
@@ -726,20 +854,6 @@
                     text: 'Heart Rate (bpm) / SpO₂ (%)'
                   },
                   beginAtZero: true
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  title: {
-                    display: true,
-                    text: 'Temperature (°C)'
-                  },
-                  min: 30,
-                  max: 45,
-                  grid: {
-                    drawOnChartArea: false
-                  }
                 }
               }
             }

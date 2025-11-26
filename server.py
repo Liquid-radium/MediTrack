@@ -344,10 +344,9 @@ def edit_vitals(patient_id):
     # Validate required fields
     heart_rate = update_data.get("heart_rate")
     spo2 = update_data.get("spo2")
-    temperature = update_data.get("temperature")
     
-    if heart_rate is None and spo2 is None and temperature is None:
-        return jsonify({"error": "At least one vital sign (heart_rate, spo2, or temperature) must be provided"}), 400
+    if heart_rate is None and spo2 is None:
+        return jsonify({"error": "At least one vital sign (heart_rate or spo2) must be provided"}), 400
     
     try:
         client = get_supabase()
@@ -372,18 +371,12 @@ def edit_vitals(patient_id):
             latest_record = existing_vitals.data[0]
             vitals_data["heart_rate"] = int(heart_rate) if heart_rate is not None else latest_record.get("heart_rate")
             vitals_data["spo2"] = int(spo2) if spo2 is not None else latest_record.get("spo2")
-            if temperature is not None:
-                vitals_data["temperature"] = float(temperature)
-            elif "temperature" in latest_record and latest_record.get("temperature") is not None:
-                vitals_data["temperature"] = latest_record.get("temperature")
         else:
             # No existing vitals - use only provided values
             if heart_rate is not None:
                 vitals_data["heart_rate"] = int(heart_rate)
             if spo2 is not None:
                 vitals_data["spo2"] = int(spo2)
-            if temperature is not None:
-                vitals_data["temperature"] = float(temperature)
         
         # Always create a new record to preserve history
         response = client.table("vitals").insert(vitals_data).execute()
