@@ -62,6 +62,17 @@
       width: 80%;
       max-width: 300px;
     }
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+      text-align: left;
+      width: 80%;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
     button.submit-btn {
       background-color: #28a745;
       color: white;
@@ -113,6 +124,7 @@
     <button onclick="showSection('generate')">Generate QR</button>
     <button onclick="showSection('add')">Add Patient</button>
     <button onclick="showSection('edit')">Edit Patient</button>
+    <button onclick="showSection('edit_vitals')">Edit Vitals</button>
     <button onclick="showSection('view')">View All Patients</button>
   </nav>
 
@@ -192,6 +204,26 @@
       <button class="submit-btn" onclick="editPatient()">Update Patient</button>
       <button class="submit-btn" style="background-color:red;" onclick="dischargePatient()">Discharge Patient</button>
       <div id="edit_message" class="message"></div>
+    </div>
+
+    <!-- Edit Vitals Section -->
+    <div id="edit_vitals" class="section">
+      <h2>Edit Patient Vitals</h2>
+      <input type="number" id="vitals_patient_id" placeholder="Patient ID" /><br/>
+      <button class="submit-btn" onclick="loadVitalsForEdit()" style="background-color:#007BFF;">Load Current Vitals</button>
+      <div id="vitals_load_status" style="margin-top:10px;"></div>
+      
+      <div id="vitals_form" style="display:none; margin-top:20px;">
+        <h3>Update Vitals</h3>
+        <label>Heart Rate (bpm)</label>
+        <input type="number" id="vitals_heart_rate" placeholder="Heart Rate" min="0" max="300" /><br/>
+        <label>SpO₂ (%)</label>
+        <input type="number" id="vitals_spo2" placeholder="SpO₂" min="0" max="100" /><br/>
+        <label>Temperature (°C)</label>
+        <input type="number" id="vitals_temperature" placeholder="Temperature" min="30" max="45" step="0.1" /><br/>
+        <button class="submit-btn" onclick="updateVitals()">Update Vitals</button>
+        <div id="vitals_message" class="message"></div>
+      </div>
     </div>
   </div>
 
@@ -426,6 +458,110 @@
       })
       .catch(() => {
         container.innerHTML = `<p style=\"color:red;\">Error fetching data.</p>`;
+      });
+    }
+
+    // Load vitals for editing
+    function loadVitalsForEdit() {
+      const id = document.getElementById("vitals_patient_id").value;
+      const statusDiv = document.getElementById("vitals_load_status");
+      const formDiv = document.getElementById("vitals_form");
+      
+      if (!id) {
+        statusDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        formDiv.style.display = "none";
+        return;
+      }
+
+      statusDiv.innerHTML = `<p>Loading...</p>`;
+      formDiv.style.display = "none";
+
+      fetch(`/get_vitals/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            statusDiv.innerHTML = `<p style="color:orange;">${data.error}. You can still create new vitals.</p>`;
+            // Show form even if no vitals exist (to create new ones)
+            document.getElementById("vitals_heart_rate").value = "";
+            document.getElementById("vitals_spo2").value = "";
+            document.getElementById("vitals_temperature").value = "";
+            formDiv.style.display = "block";
+          } else {
+            statusDiv.innerHTML = `<p style="color:green;">Current vitals loaded. Update the fields below.</p>`;
+            document.getElementById("vitals_heart_rate").value = data.heart_rate || "";
+            document.getElementById("vitals_spo2").value = data.spo2 || "";
+            document.getElementById("vitals_temperature").value = data.temperature || "";
+            formDiv.style.display = "block";
+          }
+        })
+        .catch(err => {
+          statusDiv.innerHTML = `<p style="color:red;">Error loading vitals: ${err.message}</p>`;
+          formDiv.style.display = "none";
+        });
+    }
+
+    // Update vitals
+    function updateVitals() {
+      const id = document.getElementById("vitals_patient_id").value;
+      const heartRate = document.getElementById("vitals_heart_rate").value;
+      const spo2 = document.getElementById("vitals_spo2").value;
+      const temperature = document.getElementById("vitals_temperature").value;
+      const msgDiv = document.getElementById("vitals_message");
+
+      if (!id) {
+        msgDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        return;
+      }
+
+      // Build update data - only include fields that have values
+      const updateData = {};
+      if (heartRate) {
+        const hr = parseInt(heartRate, 10);
+        if (isNaN(hr) || hr < 0 || hr > 300) {
+          msgDiv.innerHTML = `<p style="color:red;">Heart rate must be between 0 and 300 bpm.</p>`;
+          return;
+        }
+        updateData.heart_rate = hr;
+      }
+      if (spo2) {
+        const sp = parseInt(spo2, 10);
+        if (isNaN(sp) || sp < 0 || sp > 100) {
+          msgDiv.innerHTML = `<p style="color:red;">SpO₂ must be between 0 and 100%.</p>`;
+          return;
+        }
+        updateData.spo2 = sp;
+      }
+      if (temperature) {
+        const temp = parseFloat(temperature);
+        if (isNaN(temp) || temp < 30 || temp > 45) {
+          msgDiv.innerHTML = `<p style="color:red;">Temperature must be between 30 and 45 °C.</p>`;
+          return;
+        }
+        updateData.temperature = temp;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        msgDiv.innerHTML = `<p style="color:red;">Please enter at least one vital sign to update.</p>`;
+        return;
+      }
+
+      fetch(`/edit_vitals/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          msgDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          msgDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+          // Reload the vitals to show updated values
+          setTimeout(() => loadVitalsForEdit(), 1000);
+        }
+      })
+      .catch(err => {
+        msgDiv.innerHTML = `<p style="color:red;">Error updating vitals: ${err.message}</p>`;
       });
     }
 

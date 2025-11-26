@@ -301,6 +301,91 @@ def get_vitals(patient_id):
 @login_required
 def get_patient_vitals(patient_id):
     return get_vitals(patient_id)
+
+@app.route("/edit_vitals/<int:patient_id>", methods=["PUT"])
+@login_required
+def edit_vitals(patient_id):
+    """
+    Updates or creates vitals for a patient.
+    If vitals exist, updates the latest record. Otherwise, creates a new record.
+    """
+    update_data = request.get_json(silent=True) or {}
+    if not update_data:
+        return jsonify({"error": "No vitals data provided"}), 400
+    
+    # Validate required fields
+    heart_rate = update_data.get("heart_rate")
+    spo2 = update_data.get("spo2")
+    temperature = update_data.get("temperature")
+    
+    if heart_rate is None and spo2 is None and temperature is None:
+        return jsonify({"error": "At least one vital sign (heart_rate, spo2, or temperature) must be provided"}), 400
+    
+    try:
+        client = get_supabase()
+        if client is None:
+            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
+        
+        # Check if patient exists
+        patient_check = client.table("patient").select("patient_id").eq("patient_id", patient_id).execute()
+        if not patient_check.data:
+            return jsonify({"error": "Patient not found"}), 404
+        
+        # Prepare vitals data
+        vitals_data = {
+            "patient_id": patient_id
+        }
+        if heart_rate is not None:
+            vitals_data["heart_rate"] = int(heart_rate)
+        if spo2 is not None:
+            vitals_data["spo2"] = int(spo2)
+        if temperature is not None:
+            vitals_data["temperature"] = float(temperature)
+        
+        # Check if vitals exist for this patient
+        existing_vitals = client.table("vitals").select("*").eq("patient_id", patient_id).order("timestamp", desc=True).limit(1).execute()
+        
+        if existing_vitals.data:
+            # Update the latest vitals record
+            # Only update fields that were provided
+            update_fields = {}
+            if heart_rate is not None:
+                update_fields["heart_rate"] = int(heart_rate)
+            if spo2 is not None:
+                update_fields["spo2"] = int(spo2)
+            if temperature is not None:
+                update_fields["temperature"] = float(temperature)
+            
+            # Update the latest record - Supabase typically uses "id" as primary key
+            latest_record = existing_vitals.data[0]
+            # Try common primary key names
+            primary_key = latest_record.get("id") or latest_record.get("vital_id") or latest_record.get("vitals_id")
+            
+            if primary_key:
+                # Update by primary key (most common is "id")
+                response = client.table("vitals").update(update_fields).eq("id", primary_key).execute()
+            else:
+                # If no primary key found, we'll need to insert a new record instead
+                # This shouldn't happen with standard Supabase setup, but handle it gracefully
+                response = client.table("vitals").insert(vitals_data).execute()
+            
+            if response.data:
+                return jsonify({"message": "Vitals updated successfully", "vitals": response.data[0]})
+            else:
+                return jsonify({"error": "Failed to update vitals"}), 500
+        else:
+            # Create new vitals record
+            response = client.table("vitals").insert(vitals_data).execute()
+            
+            if response.data:
+                return jsonify({"message": "Vitals created successfully", "vitals": response.data[0]})
+            else:
+                return jsonify({"error": "Failed to create vitals"}), 500
+                
+    except ValueError as e:
+        return jsonify({"error": f"Invalid data format: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 @app.before_request
 def enforce_https():
