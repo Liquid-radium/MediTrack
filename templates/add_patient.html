@@ -14,26 +14,47 @@
       <label>Name</label>
       <input id="name" type="text" />
       <label>Age</label>
-      <input id="age" type="number" />
+      <input id="age" type="number" min="0" />
       <label>Ward</label>
-      <input id="ward" type="number" />
+      <input id="ward" type="number" min="0" />
       <button onclick="submitPatient()">Submit</button>
       <div id="msg" style="margin-top:10px;"></div>
     </div>
   </main>
   <script>
     function submitPatient() {
-      const payload = {
-        name: document.getElementById('name').value,
-        age: parseInt(document.getElementById('age').value, 10),
-        ward: parseInt(document.getElementById('ward').value, 10),
-      };
+      const nameInput = document.getElementById('name');
+      const ageInput = document.getElementById('age');
+      const wardInput = document.getElementById('ward');
+      const msg = document.getElementById('msg');
+
+      const name = (nameInput.value || '').trim();
+      const ageValue = ageInput.value;
+      const wardValue = wardInput.value;
+
+      // Basic client-side validation to avoid sending invalid data
+      if (!name || !ageValue || !wardValue) {
+        msg.innerHTML = "<span style='color:red'>Please fill in all fields.</span>";
+        return;
+      }
+
+      const age = parseInt(ageValue, 10);
+      const ward = parseInt(wardValue, 10);
+
+      if (!Number.isFinite(age) || !Number.isFinite(ward) || age < 0 || ward < 0) {
+        msg.innerHTML = "<span style='color:red'>Please enter valid numeric values for age and ward.</span>";
+        return;
+      }
+
+      const payload = { name, age, ward };
+
       fetch('/add_patient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      }).then(r => r.json()).then(data => {
-        const msg = document.getElementById('msg');
+      })
+      .then(r => r.json())
+      .then(data => {
         if (data.error) {
           msg.innerHTML = `<span style='color:red'>${data.error}</span>`;
         } else {
@@ -41,8 +62,16 @@
           msg.innerHTML = pid
             ? `<span style='color:green'>${data.message}. Patient ID: ${pid}</span>`
             : `<span style='color:green'>${data.message}</span>`;
+          // Optional: clear fields on success
+          nameInput.value = '';
+          ageInput.value = '';
+          wardInput.value = '';
         }
       })
+      .catch(err => {
+        console.error(err);
+        msg.innerHTML = "<span style='color:red'>An unexpected error occurred. Please try again.</span>";
+      });
     }
   </script>
 </body>

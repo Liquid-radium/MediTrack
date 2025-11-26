@@ -304,11 +304,27 @@ def get_patient_vitals(patient_id):
     
 @app.before_request
 def enforce_https():
-    # Skip HTTPS enforcement if running locally or in development
-    env = os.environ.get("FLASK_ENV", "development").lower()
+    """
+    Optionally enforce HTTPS in front of Flask.
+
+    In local development, browsers should talk to Flask over plain HTTP
+    (e.g. http://127.0.0.1:5000). If a browser tries HTTPS directly against
+    the dev server, you'll see noisy “Bad request version” logs like the one
+    you reported because the server is not speaking TLS.
+
+    To avoid breaking local login or causing those errors, HTTPS redirection
+    is now opt‑in via the FORCE_HTTPS environment variable.
+    """
+    # Never force HTTPS on localhost/127.0.0.1
     host = request.host.split(":")[0]
-    if env != "production" or host in ["127.0.0.1", "localhost"]:
+    if host in ["127.0.0.1", "localhost"]:
         return
+
+    # Only enforce HTTPS if explicitly enabled
+    force_https = os.environ.get("FORCE_HTTPS", "false").lower() == "true"
+    if not force_https:
+        return
+
     if not request.is_secure:
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
