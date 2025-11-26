@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartBand Patient Monitor</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -125,6 +126,7 @@
     <button onclick="showSection('add')">Add Patient</button>
     <button onclick="showSection('edit')">Edit Patient</button>
     <button onclick="showSection('edit_vitals')">Edit Vitals</button>
+    <button onclick="showSection('vitals_history')">Vitals History</button>
     <button onclick="showSection('view')">View All Patients</button>
   </nav>
 
@@ -223,6 +225,18 @@
         <input type="number" id="vitals_temperature" placeholder="Temperature" min="30" max="45" step="0.1" /><br/>
         <button class="submit-btn" onclick="updateVitals()">Update Vitals</button>
         <div id="vitals_message" class="message"></div>
+      </div>
+    </div>
+
+    <!-- Vitals History Graph Section -->
+    <div id="vitals_history" class="section">
+      <h2>Vitals History Graph</h2>
+      <input type="number" id="history_patient_id" placeholder="Enter Patient ID" /><br/>
+      <button class="submit-btn" onclick="loadVitalsHistory()" style="background-color:#007BFF;">Load History Graph</button>
+      <div id="history_status" style="margin-top:10px;"></div>
+      
+      <div id="history_chart_container" style="display:none; margin-top:20px; max-width:900px; margin-left:auto; margin-right:auto;">
+        <canvas id="vitalsChart" style="max-height:400px;"></canvas>
       </div>
     </div>
   </div>
@@ -563,6 +577,180 @@
       .catch(err => {
         msgDiv.innerHTML = `<p style="color:red;">Error updating vitals: ${err.message}</p>`;
       });
+    }
+
+    // Vitals history graph
+    let vitalsChart = null;
+
+    function loadVitalsHistory() {
+      const id = document.getElementById("history_patient_id").value;
+      const statusDiv = document.getElementById("history_status");
+      const chartContainer = document.getElementById("history_chart_container");
+      const chartCanvas = document.getElementById("vitalsChart");
+
+      if (!id) {
+        statusDiv.innerHTML = `<p style="color:red;">Please enter a Patient ID.</p>`;
+        chartContainer.style.display = "none";
+        return;
+      }
+
+      statusDiv.innerHTML = `<p>Loading vitals history...</p>`;
+      chartContainer.style.display = "none";
+
+      // Destroy existing chart if it exists
+      if (vitalsChart) {
+        vitalsChart.destroy();
+        vitalsChart = null;
+      }
+
+      fetch(`/vitals_history/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            statusDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+            chartContainer.style.display = "none";
+            return;
+          }
+
+          if (!data || data.length === 0) {
+            statusDiv.innerHTML = `<p style="color:orange;">No vitals history found for this patient.</p>`;
+            chartContainer.style.display = "none";
+            return;
+          }
+
+          statusDiv.innerHTML = `<p style="color:green;">Loaded ${data.length} vitals record(s)</p>`;
+
+          // Prepare data for chart
+          const labels = data.map(record => {
+            const date = new Date(record.timestamp);
+            return date.toLocaleString();
+          });
+
+          const heartRateData = data.map(record => record.heart_rate || null);
+          const spo2Data = data.map(record => record.spo2 || null);
+          const temperatureData = data.map(record => record.temperature || null);
+
+          // Create chart with dual y-axes
+          const ctx = chartCanvas.getContext('2d');
+          vitalsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Heart Rate (bpm)',
+                  data: heartRateData,
+                  borderColor: 'rgb(255, 99, 132)',
+                  backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                  yAxisID: 'y',
+                  tension: 0.1,
+                  fill: false
+                },
+                {
+                  label: 'SpO₂ (%)',
+                  data: spo2Data,
+                  borderColor: 'rgb(54, 162, 235)',
+                  backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                  yAxisID: 'y',
+                  tension: 0.1,
+                  fill: false
+                },
+                {
+                  label: 'Temperature (°C)',
+                  data: temperatureData,
+                  borderColor: 'rgb(75, 192, 192)',
+                  backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                  yAxisID: 'y1',
+                  tension: 0.1,
+                  fill: false
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              interaction: {
+                mode: 'index',
+                intersect: false,
+              },
+              plugins: {
+                title: {
+                  display: true,
+                  text: `Vitals History for Patient ID: ${id}`
+                },
+                legend: {
+                  display: true,
+                  position: 'top'
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) {
+                        label += ': ';
+                      }
+                      if (context.parsed.y !== null) {
+                        label += context.parsed.y;
+                        if (context.dataset.label.includes('Temperature')) {
+                          label += ' °C';
+                        } else if (context.dataset.label.includes('SpO₂')) {
+                          label += ' %';
+                        } else if (context.dataset.label.includes('Heart Rate')) {
+                          label += ' bpm';
+                        }
+                      }
+                      return label;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  display: true,
+                  title: {
+                    display: true,
+                    text: 'Time'
+                  },
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    maxTicksLimit: 10
+                  }
+                },
+                y: {
+                  type: 'linear',
+                  display: true,
+                  position: 'left',
+                  title: {
+                    display: true,
+                    text: 'Heart Rate (bpm) / SpO₂ (%)'
+                  },
+                  beginAtZero: true
+                },
+                y1: {
+                  type: 'linear',
+                  display: true,
+                  position: 'right',
+                  title: {
+                    display: true,
+                    text: 'Temperature (°C)'
+                  },
+                  min: 30,
+                  max: 45,
+                  grid: {
+                    drawOnChartArea: false
+                  }
+                }
+              }
+            }
+          });
+
+          chartContainer.style.display = "block";
+        })
+        .catch(err => {
+          statusDiv.innerHTML = `<p style="color:red;">Error loading vitals history: ${err.message}</p>`;
+          chartContainer.style.display = "none";
+        });
     }
 
 
