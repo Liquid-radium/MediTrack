@@ -306,8 +306,10 @@ def get_patient_vitals(patient_id):
 @login_required
 def edit_vitals(patient_id):
     """
-    Updates or creates vitals for a patient.
-    If vitals exist, updates the latest record. Otherwise, creates a new record.
+    Replaces the existing vitals record for a patient.
+    - If vitals exist: updates the latest record and deletes all older records
+    - If no vitals exist: creates a new record
+    This ensures only one vitals record exists per patient at any time.
     """
     update_data = request.get_json(silent=True) or {}
     if not update_data:
@@ -331,54 +333,89 @@ def edit_vitals(patient_id):
         if not patient_check.data:
             return jsonify({"error": "Patient not found"}), 404
         
-        # Prepare vitals data
-        vitals_data = {
-            "patient_id": patient_id
-        }
-        if heart_rate is not None:
-            vitals_data["heart_rate"] = int(heart_rate)
-        if spo2 is not None:
-            vitals_data["spo2"] = int(spo2)
-        if temperature is not None:
-            vitals_data["temperature"] = float(temperature)
-        
-        # Check if vitals exist for this patient
+        # Get the latest vitals record for this patient (if it exists)
         existing_vitals = client.table("vitals").select("*").eq("patient_id", patient_id).order("timestamp", desc=True).limit(1).execute()
         
+        # Prepare the complete vitals data
+        # If updating existing record, merge new values with existing ones
+        # If creating new record, use only the provided values
         if existing_vitals.data:
-            # Update the latest vitals record
-            # Only update fields that were provided
-            update_fields = {}
-            if heart_rate is not None:
-                update_fields["heart_rate"] = int(heart_rate)
-            if spo2 is not None:
-                update_fields["spo2"] = int(spo2)
-            if temperature is not None:
-                update_fields["temperature"] = float(temperature)
-            
-            # Update the latest record - Supabase typically uses "id" as primary key
+            # Merge: use new values if provided, otherwise keep existing values
             latest_record = existing_vitals.data[0]
-            # Try common primary key names
+            vitals_data = {
+                "patient_id": patient_id,
+                "heart_rate": int(heart_rate) if heart_rate is not None else latest_record.get("heart_rate"),
+                "spo2": int(spo2) if spo2 is not None else latest_record.get("spo2"),
+            }
+            # Temperature is optional, so handle it separately
+            if temperature is not None:
+                vitals_data["temperature"] = float(temperature)
+            elif "temperature" in latest_record:
+                vitals_data["temperature"] = latest_record.get("temperature")
+        else:
+            # Create new record with only provided values
+            vitals_data = {
+                "patient_id": patient_id
+            }
+            if heart_rate is not None:
+                vitals_data["heart_rate"] = int(heart_rate)
+            if spo2 is not None:
+                vitals_data["spo2"] = int(spo2)
+            if temperature is not None:
+                vitals_data["temperature"] = float(temperature)
+        
+        if existing_vitals.data:
+            # Get the ID of the latest record to update it
+            latest_record = existing_vitals.data[0]
             primary_key = latest_record.get("id") or latest_record.get("vital_id") or latest_record.get("vitals_id")
             
             if primary_key:
-                # Update by primary key (most common is "id")
-                response = client.table("vitals").update(update_fields).eq("id", primary_key).execute()
+                # Update the latest record
+                update_response = client.table("vitals").update(vitals_data).eq("id", primary_key).execute()
+                
+                if update_response.data:
+                    # Delete all older vitals records for this patient
+                    # Get all vitals for this patient
+                    all_vitals = client.table("vitals").select("id").eq("patient_id", patient_id).execute()
+                    
+                    if all_vitals.data:
+                        # Delete all records except the one we just updated
+                        for record in all_vitals.data:
+                            record_id = record.get("id") or record.get("vital_id") or record.get("vitals_id")
+                            if record_id and record_id != primary_key:
+                                try:
+                                    client.table("vitals").delete().eq("id", record_id).execute()
+                                except Exception:
+                                    # If deletion fails for one, continue with others
+                                    pass
+                    
+                    return jsonify({
+                        "message": "Vitals updated successfully. Old records deleted.",
+                        "vitals": update_response.data[0]
+                    })
+                else:
+                    return jsonify({"error": "Failed to update vitals"}), 500
             else:
-                # If no primary key found, we'll need to insert a new record instead
-                # This shouldn't happen with standard Supabase setup, but handle it gracefully
+                # If no primary key found, delete all and create new
+                client.table("vitals").delete().eq("patient_id", patient_id).execute()
                 response = client.table("vitals").insert(vitals_data).execute()
-            
-            if response.data:
-                return jsonify({"message": "Vitals updated successfully", "vitals": response.data[0]})
-            else:
-                return jsonify({"error": "Failed to update vitals"}), 500
+                
+                if response.data:
+                    return jsonify({
+                        "message": "Vitals replaced successfully",
+                        "vitals": response.data[0]
+                    })
+                else:
+                    return jsonify({"error": "Failed to create vitals"}), 500
         else:
-            # Create new vitals record
+            # No existing vitals - create new record
             response = client.table("vitals").insert(vitals_data).execute()
             
             if response.data:
-                return jsonify({"message": "Vitals created successfully", "vitals": response.data[0]})
+                return jsonify({
+                    "message": "Vitals created successfully",
+                    "vitals": response.data[0]
+                })
             else:
                 return jsonify({"error": "Failed to create vitals"}), 500
                 
