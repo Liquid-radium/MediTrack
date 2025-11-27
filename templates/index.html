@@ -383,7 +383,8 @@
       let baseUrl = window.location.origin;
       let url = decodedText.startsWith("http") ? decodedText : baseUrl + decodedText;
 
-      fetch(url)
+      const apiUrl = url.includes("?") ? `${url}&format=json` : `${url}?format=json`;
+      fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
@@ -393,6 +394,7 @@
               <h3>${data.name}</h3>
               <p><b>Age:</b> ${data.age}</p>
               <p><b>Ward:</b> ${data.ward}</p>
+              <p><a href="${url}" target="_blank">Open full profile</a></p>
               <div id="vitals"><p>Loading vitals...</p></div>
             `;
             fetch(url + "/vitals")
@@ -569,7 +571,7 @@
       }
 
       Promise.all([
-        fetch(`/patient/${id}`).then(res => res.json()),
+        fetch(`/patient/${id}?format=json`).then(res => res.json()),
         fetch(`/get_vitals/${id}`).then(res => res.json()).catch(() => ({ error: "Failed to fetch vitals" }))
       ])
       .then(([patient, vitals]) => {

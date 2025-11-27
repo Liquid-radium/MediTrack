@@ -77,6 +77,17 @@ def login_required(view_func):
     return wrapped
 
 
+def request_wants_json():
+    """Return True if the client prefers a JSON response."""
+    if request.args.get("format") == "json" or request.is_json:
+        return True
+    best = request.accept_mimetypes.best or ""
+    return (
+        request.accept_mimetypes["application/json"]
+        >= request.accept_mimetypes["text/html"]
+    )
+
+
 # --- Auth Routes ---
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -185,16 +196,74 @@ def admin():
 @app.route("/patient/<int:patient_id>", methods=["GET"])
 @login_required
 def get_patient(patient_id):
+    wants_json = request_wants_json()
     try:
         client = get_supabase()
         if client is None:
-            return jsonify({"error": "Server not configured: missing Supabase credentials."}), 500
-        response = client.table("patient").select("*").eq("patient_id", patient_id).execute()
-        if response.data:
-            return jsonify(response.data[0])
-        return jsonify({"error": "Patient not found"}), 404
+            return (
+                jsonify(
+                    {"error": "Server not configured: missing Supabase credentials."}
+                ),
+                500,
+            )
+
+        patient_resp = (
+            client.table("patient").select("*").eq("patient_id", patient_id).execute()
+        )
+        if not patient_resp.data:
+            if wants_json:
+                return jsonify({"error": "Patient not found"}), 404
+            return render_template(
+                "patient_profile.html",
+                patient=None,
+                vitals=None,
+                patients=[],
+                selected_patient_id=patient_id,
+                error="Patient not found",
+            ), 404
+
+        patient_data = patient_resp.data[0]
+
+        if wants_json:
+            return jsonify(patient_data)
+
+        # Fetch latest vitals for HTML view
+        vitals_resp = (
+            client.table("vitals")
+            .select("*")
+            .eq("patient_id", patient_id)
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
+        vitals_data = vitals_resp.data[0] if vitals_resp.data else None
+
+        # Fetch all patients for the table view
+        all_patients_resp = client.table("patient").select("*").execute()
+        all_patients = all_patients_resp.data or []
+
+        return render_template(
+            "patient_profile.html",
+            patient=patient_data,
+            vitals=vitals_data,
+            patients=all_patients,
+            selected_patient_id=patient_id,
+            error=None,
+        )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        if wants_json:
+            return jsonify({"error": str(e)}), 500
+        return (
+            render_template(
+                "patient_profile.html",
+                patient=None,
+                vitals=None,
+                patients=[],
+                selected_patient_id=patient_id,
+                error=str(e),
+            ),
+            500,
+        )
 
 @app.route("/add_patient", methods=["POST"])
 @login_required
